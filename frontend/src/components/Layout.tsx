@@ -3,11 +3,11 @@ import { useAuth } from '../context/AuthContext';
 
 const ITENS = [
   { para: '/', rotulo: 'Painel', icone: '⌂' },
-  { para: '/missas', rotulo: 'Missas', icone: '✠' },
-  { para: '/escala', rotulo: 'Escala mensal', icone: '☰' },
-  { para: '/impressao', rotulo: 'Escala impressa', icone: '🖶' },
-  { para: '/ministros', rotulo: 'Ministros', icone: '☺' },
+  { para: '/ministros', rotulo: 'Ministros', icone: '✝️' },
   { para: '/equipes', rotulo: 'Equipes', icone: '👥' },
+  { para: '/missas', rotulo: 'Missas', icone: '⛪' },
+  { para: '/escala', rotulo: 'Painel Escala ', icone: '☰' },
+  { para: '/impressao', rotulo: 'Impressão Escala', icone: '🖶' },
   { para: '/funcoes', rotulo: 'Funções', icone: '⚙' },
   { para: '/configuracoes', rotulo: 'Cabeçalho', icone: '✎' },
 ];

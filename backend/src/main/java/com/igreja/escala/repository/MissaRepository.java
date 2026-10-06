@@ -27,5 +27,9 @@ public interface MissaRepository extends JpaRepository<Missa, Long> {
 
     long countByEquipeId(Long equipeId);
 
+    /** Todo o historico (missas com equipe atribuida) anterior ao mes alvo. */
+    @Query("select m from Missa m where m.equipe is not null and m.data < :de order by m.data asc")
+    List<Missa> buscarComEquipeAntesDe(@Param("de") LocalDate de);
+
     boolean existsByDataAndHora(LocalDate data, java.time.LocalTime hora);
 }

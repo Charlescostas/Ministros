@@ -86,6 +86,8 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
 * **Missas** — cadastro por **data/hora**, título da celebração, celebrante, local,
   **equipe responsável**, **observação** (ex.: *Batizado*) e marcação de **destaque em vermelho**;
   navegação por mês, filtro por equipe e selo “escala gerada/pendente”.
+  A página também tem o botão **Gerar equipes do mês**, que distribui as equipes
+  automaticamente entre as missas do mês (regras abaixo), com resumo por equipe.
 * **Funções da missa** — liturgista, leitor, ministro da comunhão, músico, acólito…
   com **ordem de exibição** e **vagas por missa**.
 * **Escala mensal** — geração automática por equipe e mês, troca manual de ministro linha a linha,
@@ -100,13 +102,35 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
 
 ### Como gerar a escala no modelo do PDF
 
-1. Cadastre as **missas** do mês (data, horário, equipe, observação/evento).
-2. Informe o **número** de cada equipe em *Equipes* (aparece como `EQUIPE 4`).
-3. Ajuste o cabeçalho em *Cabeçalho* (nome da paróquia, texto “Obs”, caixa “Missa dos
+1. Cadastre as **missas** do mês (data, horário, título, observação/evento).
+2. Em *Missas*, clique em **Gerar equipes do mês** — as equipes são distribuídas
+   automaticamente (ou escolha a equipe missa a missa).
+3. Informe o **número** de cada equipe em *Equipes* (aparece como `EQUIPE 4`).
+4. Ajuste o cabeçalho em *Cabeçalho* (nome da paróquia, texto “Obs”, caixa “Missa dos
    Ministros” e adendos).
-4. Abra **Escala impressa**, escolha o mês e clique em **Imprimir / Salvar em PDF**.
+5. Abra **Escala impressa**, escolha o mês e clique em **Imprimir / Salvar em PDF**.
 
-### Regras da geração automática
+### Regras da geração de equipes (dia da semana)
+
+O botão **Gerar equipes do mês** (página *Missas*) atribui uma equipe para cada missa do
+mês, na ordem do calendário, sempre escolhendo a equipe com menor pontuação nesta ordem:
+
+1. **menos atuações nesse mesmo dia da semana** (segunda, terça, quarta…) nos
+   **meses anteriores** — o histórico completo é consultado;
+2. **menos atuações nesse dia da semana** já no **mês atual**;
+3. **menos missas no mês atual** (distribuição justa do mês);
+4. **menor histórico geral**. Empate: menor **número** da equipe (depois, ordem alfabética).
+
+Observações:
+
+* A opção **“Substituir as equipes já cadastradas”** desliga ou religa a reescrita do mês;
+  sem ela, as equipes já definidas são mantidas e só as missas “sem equipe” são preenchidas.
+* Se todas as missas do mês já tiverem equipe e a opção estiver desligada, a API responde `409`.
+* Participam da escala apenas equipes **ativas** (com membros, quando houver).
+* O retorno traz o **resumo por equipe** (carga no mês e histórico por dia da semana),
+  exibido na tela logo após a geração.
+
+### Regras da geração da escala de ministros
 
 Para cada missa do mês já vinculada à equipe, cada função ativa é preenchida na ordem
 definida, escolhendo o ministro por:
@@ -158,6 +182,7 @@ Ministros/
 | GET/POST | `/api/funcoes` | funções da missa |
 | GET | `/api/escalas?mes=AAAA-MM&equipeId=` | escala gerada |
 | POST | `/api/escalas/gerar` | `{equipeId, mes, substituir}` → gera a escala |
+| POST | `/api/escalas/equipes/gerar` | `{mes, substituir}` → distribui as **equipes** nas missas |
 | PUT/DELETE | `/api/escalas/{id}` | troca ministro / remove item |
 | POST | `/api/escalas/limpar?mes=&equipeId=` | apaga a escala do mês |
 | GET/PUT | `/api/configuracao` | textos do cabeçalho da escala impressa |

@@ -68,6 +68,41 @@ export interface EscalaItem {
   observacao: string | null;
 }
 
+export interface GeracaoEquipesLinha {
+  missaId: number;
+  data: string;
+  diaSemana: string;
+  hora: string;
+  titulo: string;
+  equipeId: number;
+  equipeNome: string;
+  equipeNumero: number | null;
+  jaEstava: boolean;
+  historicoDiaSemana: number;
+  noMesDiaSemana: number;
+  noMesTotal: number;
+}
+
+export interface GeracaoEquipesResumo {
+  equipeId: number;
+  nome: string;
+  numero: number | null;
+  noMes: number;
+  historicoTotal: number;
+  historicoPorDiaSemana: Record<string, number>;
+  noMesPorDiaSemana: Record<string, number>;
+}
+
+export interface GeracaoEquipes {
+  mes: string;
+  substituir: boolean;
+  totalMissas: number;
+  mantidas: number;
+  atribuidas: number;
+  linhas: GeracaoEquipesLinha[];
+  resumo: GeracaoEquipesResumo[];
+}
+
 export interface Resumo {
   ministrosAtivos: number;
   equipesAtivas: number;

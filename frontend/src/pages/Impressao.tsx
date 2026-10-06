@@ -97,13 +97,14 @@ export default function Impressao() {
       </div>
 
       <article className="documento">
-        <h1 className="doc-titulo">Escala {rotuloMesCurto(mes)}</h1>
 
         <div className="doc-identidade">
           <img className="doc-logo" src="/logo-calice.jpg" alt="Ministro da Eucaristia" />
           {config?.nomeParoquia && <h2 className="doc-paroquia">{config.nomeParoquia}</h2>}
           {config?.tituloGrupo && <h3 className="doc-grupo">{config.tituloGrupo}</h3>}
         </div>
+
+       <h1 className="doc-titulo">Escala {rotuloMesCurto(mes)}</h1>
 
         <div className="doc-corpo">
           <table className="doc-tabela">

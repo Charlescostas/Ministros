@@ -1,8 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError, mensagemErro } from '../api/client';
 import Modal from '../components/Modal';
-import type { Equipe, Missa } from '../types';
+import type { Equipe, GeracaoEquipes, Missa } from '../types';
 import { dataPorExtenso, deslocarMes, horaCurta, mesAtual, opcoesDeData, rotuloMes } from '../lib/format';
+
+/** Converte o mapa { "DOMINGO": 3, ... } em texto legivel. */
+function rotulosDias(mapa: Record<string, number>): string {
+  return Object.entries(mapa)
+    .map(([dia, qtd]) => `${dia} ${qtd}`)
+    .join(', ');
+}
 
 interface FormMissa {
   id?: number;
@@ -24,6 +31,12 @@ export default function Missas() {
   const [erro, setErro] = useState<string | null>(null);
   const [form, setForm] = useState<FormMissa | null>(null);
   const [salvando, setSalvando] = useState(false);
+
+  const [mostrarGerador, setMostrarGerador] = useState(false);
+  const [substituir, setSubstituir] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const [geracao, setGeracao] = useState<GeracaoEquipes | null>(null);
+  const [erroGerador, setErroGerador] = useState<string | null>(null);
 
   const [ano, mesNum] = mes.split('-').map(Number);
   const de = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
@@ -104,6 +117,25 @@ export default function Missas() {
       .catch((ex) => setErro(mensagemErro(ex)));
   }
 
+  function abrirGerador() {
+    setGeracao(null);
+    setErroGerador(null);
+    setSubstituir(false);
+    setMostrarGerador(true);
+  }
+
+  function gerarEquipes() {
+    setGerando(true);
+    setErroGerador(null);
+    api<GeracaoEquipes>('/escalas/equipes/gerar', { method: 'POST', body: { mes, substituir } })
+      .then((r) => {
+        setGeracao(r);
+        carregar();
+      })
+      .catch((ex) => setErroGerador(mensagemErro(ex)))
+      .finally(() => setGerando(false));
+  }
+
   const datas = opcoesDeData();
 
   return (
@@ -113,9 +145,14 @@ export default function Missas() {
           <h1>Missas</h1>
           <p className="subtitulo">{rotuloMes(mes)} · {missas.length} missa(s)</p>
         </div>
-        <button type="button" className="botao botao-primario" onClick={novo}>
-          + Nova missa
-        </button>
+        <div className="acoes-topo">
+          <button type="button" className="botao" onClick={abrirGerador}>
+            Gerar equipes do mês
+          </button>
+          <button type="button" className="botao botao-primario" onClick={novo}>
+            + Nova missa
+          </button>
+        </div>
       </header>
 
       {erro && <div className="aviso erro">{erro}</div>}
@@ -295,6 +332,87 @@ export default function Missas() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {mostrarGerador && (
+        <Modal
+          titulo="Gerar escala de equipes"
+          aoFechar={() => setMostrarGerador(false)}
+          largura="amplo"
+        >
+          <div className="formulario">
+            <p className="dica">
+              Para cada missa de <strong>{rotuloMes(mes)}</strong> a equipe é escolhida nesta ordem:
+              <br />
+              <strong>1.</strong> quem <strong>menos atuou nesse mesmo dia da semana</strong> (segunda,
+              terça…) nos <strong>meses anteriores</strong>;
+              <br />
+              <strong>2.</strong> quem menos atuou nesse dia da semana <strong>no mês atual</strong>;
+              <br />
+              <strong>3.</strong> quem tem menos missas no mês;
+              <br />
+              <strong>4.</strong> menor histórico geral. Empate: menor número da equipe.
+            </p>
+
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={substituir}
+                onChange={(e) => setSubstituir(e.target.checked)}
+              />
+              Substituir as equipes já cadastradas em {rotuloMes(mes)}
+            </label>
+
+            {erroGerador && <div className="aviso erro">{erroGerador}</div>}
+
+            {geracao && (
+              <>
+                <div className="aviso sucesso">
+                  {geracao.atribuidas} equipe(s) atribuída(s) e {geracao.mantidas} mantida(s) em{' '}
+                  {geracao.totalMissas} missa(s) de {rotuloMes(geracao.mes)}.
+                </div>
+
+                <table className="tabela">
+                  <thead>
+                    <tr>
+                      <th>Equipe</th>
+                      <th className="num">No mês</th>
+                      <th>Meses anteriores (por dia da semana)</th>
+                      <th>No mês (por dia da semana)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {geracao.resumo.map((r) => (
+                      <tr key={r.equipeId}>
+                        <td>
+                          <strong>{r.numero ? `EQUIPE ${r.numero}` : r.nome}</strong>
+                          {r.numero && <small className="bloco">{r.nome}</small>}
+                        </td>
+                        <td className="num">{r.noMes}</td>
+                        <td>{rotulosDias(r.historicoPorDiaSemana) || '—'}</td>
+                        <td>{rotulosDias(r.noMesPorDiaSemana) || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            <div className="formulario-acoes">
+              <button type="button" className="botao" onClick={() => setMostrarGerador(false)}>
+                Fechar
+              </button>
+              <button
+                type="button"
+                className="botao botao-primario"
+                onClick={gerarEquipes}
+                disabled={gerando}
+              >
+                {gerando ? 'Gerando…' : geracao ? 'Gerar novamente' : 'Gerar agora'}
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </>
