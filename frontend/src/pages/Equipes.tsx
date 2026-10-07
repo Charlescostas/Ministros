@@ -9,6 +9,7 @@ interface FormEquipe {
   descricao: string;
   ativa: boolean;
   numero: string;
+  coordenadorId: string;
   ministroIds: number[];
 }
 
@@ -37,6 +38,7 @@ export default function Equipes() {
       descricao: form.descricao || null,
       ativa: form.ativa,
       numero: form.numero ? Number(form.numero) : null,
+      coordenadorId: form.coordenadorId ? Number(form.coordenadorId) : null,
       ministroIds: form.ministroIds,
     };
     const requisicao = form.id
@@ -70,15 +72,41 @@ export default function Equipes() {
 
   function alternarMembro(id: number) {
     if (!form) return;
-    const selecionados = form.ministroIds.includes(id)
+    const eraMembro = form.ministroIds.includes(id);
+    const selecionados = eraMembro
       ? form.ministroIds.filter((x) => x !== id)
       : [...form.ministroIds, id];
-    setForm({ ...form, ministroIds: selecionados });
+    // quem sai da lista deixa de ser coordenador
+    const coordenador = !eraMembro || String(id) !== form.coordenadorId
+      ? form.coordenadorId
+      : '';
+    setForm({ ...form, ministroIds: selecionados, coordenadorId: coordenador });
   }
 
-  const ministrosFiltrados = ministros.filter((m) =>
-    m.nome.toLowerCase().includes(filtroMembro.toLowerCase()),
+  /** Membros marcados no formulário (opções do seletor de coordenador). */
+  const membrosForm = form
+    ? ministros.filter((m) => form.ministroIds.includes(m.id))
+    : [];
+
+  /**
+   * Lista de membros do formulário: só aparece quem **ainda não tem equipe**
+   * (mais os que já estão marcados nesta equipe, para permitir desmarcar).
+   * Ministros de outras equipes ficam fora da lista.
+   */
+  function pertenceAEoutraEquipe(m: Ministro) {
+    return equipes.some((e) => e.id !== form?.id && e.ministros.some((x) => x.id === m.id));
+  }
+
+  const ministrosFiltrados = ministros.filter(
+    (m) =>
+      m.nome.toLowerCase().includes(filtroMembro.toLowerCase()) &&
+      (form?.ministroIds.includes(m.id) || !pertenceAEoutraEquipe(m)),
   );
+
+  /** Ministros escondidos por já pertencerem a outra equipe. */
+  const emOutraEquipe = ministros.filter(
+    (m) => !form?.ministroIds.includes(m.id) && pertenceAEoutraEquipe(m),
+  ).length;
 
   return (
     <>
@@ -90,7 +118,9 @@ export default function Equipes() {
         <button
           type="button"
           className="botao botao-primario"
-          onClick={() => setForm({ nome: '', descricao: '', ativa: true, numero: '', ministroIds: [] })}
+          onClick={() =>
+            setForm({ nome: '', descricao: '', ativa: true, numero: '', coordenadorId: '', ministroIds: [] })
+          }
         >
           + Nova equipe
         </button>
@@ -116,18 +146,27 @@ export default function Equipes() {
 
             <div className="equipe-membros">
               {equipe.ministros.length === 0 && <span className="vazio">Nenhum membro</span>}
-              {equipe.ministros.map((m) => (
-                <span key={m.id} className={`chip ${m.ativo ? '' : 'chip-inativo'}`}>
-                  {m.nome}
-                  <button
-                    type="button"
-                    title="Remover da equipe"
-                    onClick={() => removerMembro(equipe, m)}
+              {equipe.ministros.map((m) => {
+                const coord = equipe.coordenadorId === m.id;
+                return (
+                  <span
+                    key={m.id}
+                    className={`chip ${m.ativo ? '' : 'chip-inativo'} ${coord ? 'chip-coordenador' : ''}`}
+                    title={coord ? 'Coordenador da equipe' : undefined}
                   >
-                    ✕
-                  </button>
-                </span>
-              ))}
+                    {coord && <span aria-hidden="true">★</span>}
+                    {m.nome}
+                    {coord && <small>(coordenador)</small>}
+                    <button
+                      type="button"
+                      title="Remover da equipe"
+                      onClick={() => removerMembro(equipe, m)}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
             </div>
 
             <footer className="equipe-rodape">
@@ -143,6 +182,8 @@ export default function Equipes() {
                       descricao: equipe.descricao ?? '',
                       ativa: equipe.ativa,
                       numero: equipe.numero != null ? String(equipe.numero) : '',
+                      coordenadorId:
+                        equipe.coordenadorId != null ? String(equipe.coordenadorId) : '',
                       ministroIds: equipe.ministros.map((m) => m.id),
                     })
                   }
@@ -233,7 +274,39 @@ export default function Equipes() {
                 ))}
                 {ministrosFiltrados.length === 0 && <span className="vazio">Nenhum ministro.</span>}
               </div>
+              {emOutraEquipe > 0 && (
+                <small className="dica">
+                  {emOutraEquipe} ministro(s) já pertencem a outra equipe e por isso não aparecem
+                  nesta lista.
+                </small>
+              )}
             </div>
+
+            <label>
+              Coordenador
+              <select
+                value={form.coordenadorId}
+                onChange={(e) => setForm({ ...form, coordenadorId: e.target.value })}
+                disabled={form.ministroIds.length === 0}
+              >
+                <option value="">
+                  {form.ministroIds.length === 0 ? 'Marque ao menos um membro' : 'Sem coordenador'}
+                </option>
+                {membrosForm.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
+                ))}
+                {form.coordenadorId &&
+                  !membrosForm.some((m) => String(m.id) === form.coordenadorId) && (
+                    <option value={form.coordenadorId}>(ministro não encontrado)</option>
+                  )}
+              </select>
+              <small className="dica">
+                Escolha entre os membros marcados. Alterar a equipe não apaga a escala já gerada:
+                os membros anteriores continuam nas linhas já impressas.
+              </small>
+            </label>
 
             <div className="formulario-acoes">
               <button type="button" className="botao" onClick={() => setForm(null)}>

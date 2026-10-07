@@ -13,6 +13,7 @@ public final class EquipeDtos {
             String descricao,
             Boolean ativa,
             Integer numero,
+            Long coordenadorId,
             List<Long> ministroIds) {}
 
     public record Resposta(
@@ -21,6 +22,8 @@ public final class EquipeDtos {
             String nome,
             String descricao,
             boolean ativa,
+            Long coordenadorId,
+            String coordenadorNome,
             int quantidadeMinistros,
             List<MinistroDtos.Resposta> ministros) {}
 }

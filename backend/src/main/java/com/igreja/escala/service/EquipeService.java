@@ -55,10 +55,16 @@ public class EquipeService {
         e.setAtiva(dados.ativa() == null || dados.ativa());
         e.setNumero(dados.numero());
         e.setMinistros(resolverMinistros(dados.ministroIds()));
+        aplicarCoordenador(e, dados.coordenadorId());
         equipes.save(e);
         return paraResposta(e, Map.of());
     }
 
+    /**
+     * Atualiza a equipe. Trocar os membros NAO apaga a escala ja gerada:
+     * os itens anteriores continuam vinculados aos ministros que estavam na
+     * equipe na época, preservando o histórico impresso.
+     */
     @Transactional
     public EquipeDtos.Resposta atualizar(Long id, EquipeDtos.Dados dados) {
         Equipe e = carregar(id);
@@ -68,6 +74,7 @@ public class EquipeService {
         e.setAtiva(dados.ativa() == null || dados.ativa());
         e.setNumero(dados.numero());
         e.setMinistros(resolverMinistros(dados.ministroIds()));
+        aplicarCoordenador(e, dados.coordenadorId());
         equipes.save(e);
         return paraResposta(e, contagemDeEscalas());
     }
@@ -100,6 +107,10 @@ public class EquipeService {
         return paraResposta(e, contagemDeEscalas());
     }
 
+    /**
+     * Remove o membro da equipe. A escala ja gerada NAO e alterada:
+     * os itens daquele ministro permanecem na escala (historico).
+     */
     @Transactional
     public EquipeDtos.Resposta removerMinistro(Long equipeId, Long ministroId) {
         Equipe e = carregar(equipeId);
@@ -107,8 +118,28 @@ public class EquipeService {
         if (!removido) {
             throw ApiException.naoEncontrado("Ministro nao esta nesta equipe");
         }
+        // quem sai da equipe deixa de ser coordenador
+        if (e.getCoordenador() != null && e.getCoordenador().getId().equals(ministroId)) {
+            e.setCoordenador(null);
+        }
         equipes.save(e);
         return paraResposta(e, contagemDeEscalas());
+    }
+
+    /**
+     * Define o coordenador. Precisa ser um dos membros da equipe;
+     * id nulo limpa a referencia (nunca mexe na escala gerada).
+     */
+    private void aplicarCoordenador(Equipe e, Long coordenadorId) {
+        if (coordenadorId == null) {
+            e.setCoordenador(null);
+            return;
+        }
+        Ministro coordenador = e.getMinistros().stream()
+                .filter(m -> m.getId().equals(coordenadorId))
+                .findFirst()
+                .orElseThrow(() -> ApiException.regra("O coordenador precisa ser um membro da equipe"));
+        e.setCoordenador(coordenador);
     }
 
     private List<Ministro> resolverMinistros(List<Long> ids) {
@@ -146,9 +177,14 @@ public class EquipeService {
                 .sorted((a, b) -> a.getNome().compareToIgnoreCase(b.getNome()))
                 .map(m -> new MinistroDtos.Resposta(
                         m.getId(), m.getNome(), m.getTelefone(), m.getEmail(), m.getFuncaoPreferida(),
+                        m.getSexo(), m.getDataNascimento(),
                         m.isAtivo(), m.getObservacoes(), contagem.getOrDefault(m.getId(), 0L)))
                 .toList();
+        Ministro coordenador = e.getCoordenador();
         return new EquipeDtos.Resposta(
-                e.getId(), e.getNumero(), e.getNome(), e.getDescricao(), e.isAtiva(), membros.size(), membros);
+                e.getId(), e.getNumero(), e.getNome(), e.getDescricao(), e.isAtiva(),
+                coordenador == null ? null : coordenador.getId(),
+                coordenador == null ? null : coordenador.getNome(),
+                membros.size(), membros);
     }
 }

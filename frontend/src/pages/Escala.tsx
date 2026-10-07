@@ -255,6 +255,15 @@ export default function Escala() {
 
   const membros = equipeSelecionada?.ministros ?? [];
 
+  /**
+   * Ministro que saiu da equipe depois de a escala ter sido gerada:
+   * a linha continua na escala (histórico preservado) e é sinalizada aqui.
+   */
+  function membroSaiuDaEquipe(idEquipe: number, idMinistro: number) {
+    const eq = equipes.find((e) => e.id === idEquipe);
+    return !!eq && !eq.ministros.some((m) => m.id === idMinistro);
+  }
+
   return (
     <>
       <header className="pagina-topo area-impressao">
@@ -265,6 +274,17 @@ export default function Escala() {
           <a className="botao botao-secundario" href="/impressao">
             Imprimir Escala
           </a>
+          <button
+            type="button"
+            className="botao botao-secundario"
+            onClick={limpar}
+            disabled={itens.length === 0}
+          >
+            Limpar
+          </button>
+          <button type="button" className="botao botao-primario" onClick={gerar} disabled={gerando}>
+            {gerando ? 'Gerando…' : itens.length > 0 ? 'Gerar novamente' : 'Gerar escala'}
+          </button>
         </div>
       </header>
 
@@ -273,6 +293,15 @@ export default function Escala() {
           {opcoesDeMes().map((m) => (
             <option key={m} value={m}>
               {rotuloMes(m)}
+            </option>
+          ))}
+        </select>
+
+        <select className="selecao" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
+          <option value="">Todas as equipes</option>
+          {equipes.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nome}
             </option>
           ))}
         </select>
@@ -287,6 +316,16 @@ export default function Escala() {
 
       {erro && <div className="aviso erro">{erro}</div>}
       {aviso && <div className="aviso sucesso">{aviso}</div>}
+
+      <div className="dashboard-topo area-tela">
+        <button
+          type="button"
+          className="botao-mini"
+          onClick={() => setMostrarDashboard((v) => !v)}
+        >
+          {mostrarDashboard ? 'Ocultar dashboard' : 'Mostrar dashboard'}
+        </button>
+      </div>
 
       {mostrarDashboard && (
         <section className="dashboard area-tela" aria-label="Dashboard da escala">
@@ -392,6 +431,15 @@ export default function Escala() {
         <div className="coluna-principal">
           {carregando && <div className="carregando">Carregando escala…</div>}
 
+          {!carregando && estrutura.length === 0 && (
+            <section className="painel">
+              <p className="vazio">
+                Nenhuma escala gerada para {rotuloMes(mes)}. Selecione a equipe em cima e clique
+                em “Gerar escala”.
+              </p>
+            </section>
+          )}
+
  
           {estrutura.map((grupoEquipe) => (
             <section key={grupoEquipe.equipeId} className="bloco-equipe">
@@ -446,6 +494,11 @@ export default function Escala() {
                                 <option disabled>selecione a equipe acima</option>
                               )}
                             </select>
+                            {membroSaiuDaEquipe(grupoEquipe.equipeId, item.ministroId) && (
+                              <small className="bloco fora-equipe">
+                                fora da equipe · escala mantida
+                              </small>
+                            )}
                           </td>
                           <td>{item.telefoneMinistro ?? '—'}</td>
                           <td className="acoes">

@@ -79,10 +79,19 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
 ## 4. Funcionalidades
 
 * **Painel** — resumo: ministros ativos, equipes, missas do mês, itens de escala e próximas missas.
-* **Ministros** — cadastro completo (nome, telefone, e-mail, função preferida, observações,
-  ativo/inativo), busca e total de serviços já cumpridos.
+* **Ministros** — cadastro completo (nome, telefone, e-mail, **sexo**, **data de nascimento**,
+  observações, ativo/inativo), busca e total de serviços já cumpridos.
+  O campo antigo *função preferida* saiu do formulário: o valor já cadastrado continua no banco
+  e ainda vale como critério de desempate na geração da escala.
 * **Equipes** — cadastro com membros (adicionar/remover por *chips* ou no formulário),
+  **coordenador** (escolhido no formulário entre os membros e marcado com ★ no cartão),
   ativa/inativa e **número da equipe** (`EQUIPE 1`, `EQUIPE 2`…) usado no documento impresso.
+  Na lista **Membros** só aparecem os ministros que **ainda não têm equipe** (mais os que já estão
+  marcados nesta equipe, para poder desmarcar) — ministros de outras equipes ficam ocultos, com a
+  contagem informada embaixo.
+  Alterar a equipe **não apaga a escala já gerada**: os membros anteriores continuam nas linhas
+  já criadas e aparecem sinalizados como *“fora da equipe · escala mantida”* na página *Escala*
+  (quem sai também deixa de ser coordenador).
 * **Missas** — cadastro por **data/hora**, título da celebração, celebrante, local,
   **equipe responsável**, **observação** (ex.: *Batizado*) e marcação de **destaque em vermelho**;
   navegação por mês, filtro por equipe e selo “escala gerada/pendente”.
@@ -98,7 +107,8 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   carga de cada ministro e **impressão** (o dashboard é só de tela e não entra na impressão).
 * **Escala impressa** — documento mensal no **modelo do PDF** da paróquia (título do mês,
   cabeçalho da paróquia, tabela *Data | Dia da Semana | Horário | Equipe | Observação*,
-  quadro de equipes com os integrantes, texto “Obs” e caixa “Missa dos Ministros”),
+  quadro de equipes com os integrantes — o **coordenador aparece primeiro da linha**,
+  em negrito, com **cor de fundo** e “(coordenador)” —, texto “Obs” e caixa “Missa dos Ministros”),
   com botão **Imprimir / Salvar em PDF** (papel A4).
 * **Cabeçalho** — configuração dos textos do documento impresso (paróquia, título do grupo,
   “Obs”, caixa “Missa dos Ministros” e bloco de adendos, ex.: escala da Missa da Saúde).
@@ -140,12 +150,17 @@ Para cada missa do mês já vinculada à equipe, cada função ativa é preenchi
 definida, escolhendo o ministro por:
 
 1. **menor quantidade de serviços no mês** (distribuição justa);
-2. **função preferida** do ministro, em caso de empate;
+2. **função preferida** do ministro (campo antigo — não é mais editado na tela, mas continua
+   valendo para quem já tem o valor preenchido), em caso de empate;
 3. quem **não exerceu a mesma função na missa anterior** (variedade);
 4. **sorteio** entre os restantes.
 
 Já existindo escala, a geração exige a opção *substituir* (a API responde `409` caso contrário).
 Ministros inativos e equipes inativas não recebem escala.
+
+As linhas já geradas são **preservadas quando a equipe muda**: adicionar ou remover membros
+(não) mexe nos itens existentes — quem saiu da equipe continua na escala do mês, identificado
+como *fora da equipe*, e volta a participar apenas nas próximas gerações.
 
 ## 5. Estrutura do projeto
 
@@ -180,8 +195,9 @@ Ministros/
 | GET | `/api/dashboard/resumo` | números do painel |
 | GET/POST | `/api/ministros` | lista (com `?busca=`) / cria |
 | PUT/DELETE | `/api/ministros/{id}` | edita / exclui |
-| GET/POST | `/api/equipes` | lista / cria |
-| POST/DELETE | `/api/equipes/{id}/ministros/{ministroId}` | adiciona / remove membro |
+| GET/POST/PUT | `/api/equipes` | lista / cria / edita (aceita `coordenadorId`) |
+| DELETE | `/api/equipes/{id}` | exclui (bloqueada se a equipe tiver escala gerada) |
+| POST/DELETE | `/api/equipes/{id}/ministros/{ministroId}` | adiciona / remove membro **sem apagar a escala já gerada** |
 | GET/POST | `/api/missas` | lista (`?de=&ate=&equipeId=&busca=`) / cria |
 | GET/POST | `/api/funcoes` | funções da missa |
 | GET | `/api/escalas?mes=AAAA-MM&equipeId=` | escala gerada |
@@ -194,6 +210,7 @@ Ministros/
 Todas as rotas exigem `Authorization: Bearer <token>` (exceto `/api/auth/login`).
 
 Campos extras usados no documento impresso: `Equipe.numero` (número da equipe),
+`Equipe.coordenadorId` / `coordenadorNome` (coordenador — precisa ser membro da equipe),
 `Missa.observacoes` (coluna “Observação”) e `Missa.destaque` (linha em vermelho).
 
 ## 7. Dados de demonstração

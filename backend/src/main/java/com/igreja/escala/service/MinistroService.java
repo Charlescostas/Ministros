@@ -66,7 +66,13 @@ public class MinistroService {
             throw ApiException.conflito("Nao e possivel excluir: o ministro possui " + total + " item(ns) de escala.");
         }
         for (Equipe e : equipes.findAll()) {
-            if (e.getMinistros().removeIf(x -> x.getId().equals(id))) {
+            boolean alterada = e.getMinistros().removeIf(x -> x.getId().equals(id));
+            // o ministro nao pode continuar como coordenador de equipe
+            if (e.getCoordenador() != null && e.getCoordenador().getId().equals(id)) {
+                e.setCoordenador(null);
+                alterada = true;
+            }
+            if (alterada) {
                 equipes.save(e);
             }
         }
@@ -85,9 +91,24 @@ public class MinistroService {
         m.setNome(dados.nome().trim());
         m.setTelefone(dados.telefone());
         m.setEmail(dados.email());
-        m.setFuncaoPreferida(dados.funcaoPreferida());
+        // "Funcao preferida" saiu do formulario: o valor ja cadastrado e mantido
+        // (continua valendo como criterio de desempate na geracao da escala).
+        if (dados.funcaoPreferida() != null) {
+            m.setFuncaoPreferida(dados.funcaoPreferida().trim());
+        }
+        m.setSexo(normalizarSexo(dados.sexo()));
+        m.setDataNascimento(dados.dataNascimento());
         m.setAtivo(dados.ativo() == null || dados.ativo());
         m.setObservacoes(dados.observacoes());
+    }
+
+    /** Aceita "Feminino"/"Masculino" (ou "F"/"M") e devolve o rotulo padrao. */
+    private String normalizarSexo(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        String v = valor.trim();
+        if (v.equalsIgnoreCase("F") || v.equalsIgnoreCase("Feminino")) return "Feminino";
+        if (v.equalsIgnoreCase("M") || v.equalsIgnoreCase("Masculino")) return "Masculino";
+        throw ApiException.regra("Sexo deve ser Feminino ou Masculino");
     }
 
     private Map<Long, Long> contagemDeEscalas() {
@@ -100,6 +121,7 @@ public class MinistroService {
     private MinistroDtos.Resposta paraResposta(Ministro m, Map<Long, Long> contagem) {
         return new MinistroDtos.Resposta(
                 m.getId(), m.getNome(), m.getTelefone(), m.getEmail(), m.getFuncaoPreferida(),
+                m.getSexo(), m.getDataNascimento(),
                 m.isAtivo(), m.getObservacoes(), contagem.getOrDefault(m.getId(), 0L));
     }
 }

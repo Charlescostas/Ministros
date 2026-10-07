@@ -28,6 +28,14 @@ public class Equipe {
     @Column(name = "numero")
     private Integer numero;
 
+    /**
+     * Ministro coordenador da equipe. Sempre um dos membros:
+     * a referencia e limpa quando o ministro sai da equipe ou e excluido.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coordenador_id")
+    private Ministro coordenador;
+
     @ManyToMany
     @JoinTable(
             name = "equipe_ministro",
@@ -45,6 +53,8 @@ public class Equipe {
     public void setAtiva(boolean ativa) { this.ativa = ativa; }
     public Integer getNumero() { return numero; }
     public void setNumero(Integer numero) { this.numero = numero; }
+    public Ministro getCoordenador() { return coordenador; }
+    public void setCoordenador(Ministro coordenador) { this.coordenador = coordenador; }
     public List<Ministro> getMinistros() { return ministros; }
     public void setMinistros(List<Ministro> ministros) { this.ministros = ministros; }
 }

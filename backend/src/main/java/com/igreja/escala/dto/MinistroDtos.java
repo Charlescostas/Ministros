@@ -2,6 +2,8 @@ package com.igreja.escala.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
+import java.time.LocalDate;
+
 public final class MinistroDtos {
 
     private MinistroDtos() {}
@@ -11,6 +13,8 @@ public final class MinistroDtos {
             String telefone,
             String email,
             String funcaoPreferida,
+            String sexo,
+            LocalDate dataNascimento,
             Boolean ativo,
             String observacoes) {}
 
@@ -20,6 +24,8 @@ public final class MinistroDtos {
             String telefone,
             String email,
             String funcaoPreferida,
+            String sexo,
+            LocalDate dataNascimento,
             boolean ativo,
             String observacoes,
             long totalEscalas) {}

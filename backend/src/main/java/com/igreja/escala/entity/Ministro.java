@@ -2,6 +2,7 @@ package com.igreja.escala.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * Ministro da comunhao (membro da comunidade que compoe as equipes).
@@ -27,6 +28,14 @@ public class Ministro {
     @Column(length = 80)
     private String funcaoPreferida;
 
+    /** Sexo do ministro: "Feminino" ou "Masculino". */
+    @Column(length = 12)
+    private String sexo;
+
+    /** Data de nascimento (opcional), em ISO AAAA-MM-DD. */
+    @Column(name = "data_nascimento")
+    private LocalDate dataNascimento;
+
     @Column(nullable = false)
     private boolean ativo = true;
 
@@ -51,6 +60,10 @@ public class Ministro {
     public void setEmail(String email) { this.email = email; }
     public String getFuncaoPreferida() { return funcaoPreferida; }
     public void setFuncaoPreferida(String funcaoPreferida) { this.funcaoPreferida = funcaoPreferida; }
+    public String getSexo() { return sexo; }
+    public void setSexo(String sexo) { this.sexo = sexo; }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public String getObservacoes() { return observacoes; }

@@ -1,20 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError, mensagemErro } from '../api/client';
 import Modal from '../components/Modal';
-import type { Funcao, Ministro } from '../types';
+import type { Ministro } from '../types';
 
 const VAZIO: Partial<Ministro> = {
   nome: '',
   telefone: '',
   email: '',
-  funcaoPreferida: '',
+  sexo: '',
+  dataNascimento: '',
   ativo: true,
   observacoes: '',
 };
 
 export default function Ministros() {
   const [lista, setLista] = useState<Ministro[]>([]);
-  const [funcoes, setFuncoes] = useState<Funcao[]>([]);
   const [busca, setBusca] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Ministro> | null>(null);
@@ -28,7 +28,6 @@ export default function Ministros() {
 
   useEffect(() => {
     carregar(busca);
-    api<Funcao[]>('/funcoes').then(setFuncoes).catch(() => undefined);
   }, [busca]);
 
   function salvar() {
@@ -38,7 +37,8 @@ export default function Ministros() {
       nome: form.nome,
       telefone: form.telefone || null,
       email: form.email || null,
-      funcaoPreferida: form.funcaoPreferida || null,
+      sexo: form.sexo || null,
+      dataNascimento: form.dataNascimento || null,
       ativo: form.ativo !== false,
       observacoes: form.observacoes || null,
     };
@@ -91,7 +91,7 @@ export default function Ministros() {
             <tr>
               <th>Nome</th>
               <th>Telefone</th>
-              <th>Função preferida</th>
+              <th>Sexo</th>
               <th className="num">Escalas</th>
               <th>Situação</th>
               <th></th>
@@ -105,7 +105,7 @@ export default function Ministros() {
                   {m.email && <small className="bloco">{m.email}</small>}
                 </td>
                 <td>{m.telefone ?? '—'}</td>
-                <td>{m.funcaoPreferida ?? '—'}</td>
+                <td>{m.sexo ?? '—'}</td>
                 <td className="num">{m.totalEscalas}</td>
                 <td>
                   <span className={`selo ${m.ativo ? 'selo-ok' : 'selo-off'}`}>
@@ -174,20 +174,27 @@ export default function Ministros() {
               </label>
             </div>
 
-            <label>
-              Função preferida
-              <input
-                list="lista-funcoes"
-                value={form.funcaoPreferida ?? ''}
-                onChange={(e) => setForm({ ...form, funcaoPreferida: e.target.value })}
-                placeholder="Ex.: Ministro da Comunhão"
-              />
-              <datalist id="lista-funcoes">
-                {funcoes.map((f) => (
-                  <option key={f.id} value={f.nome} />
-                ))}
-              </datalist>
-            </label>
+            <div className="linha-dupla">
+              <label>
+                Sexo
+                <select
+                  value={form.sexo ?? ''}
+                  onChange={(e) => setForm({ ...form, sexo: e.target.value })}
+                >
+                  <option value="">—</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Masculino">Masculino</option>
+                </select>
+              </label>
+              <label>
+                Data de nascimento
+                <input
+                  type="date"
+                  value={form.dataNascimento ?? ''}
+                  onChange={(e) => setForm({ ...form, dataNascimento: e.target.value })}
+                />
+              </label>
+            </div>
 
             <label>
               Observações

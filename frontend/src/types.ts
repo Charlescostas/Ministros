@@ -3,7 +3,11 @@ export interface Ministro {
   nome: string;
   telefone: string | null;
   email: string | null;
+  /** Campo legado: não é mais editado na tela (mantido no banco/critério de desempate). */
   funcaoPreferida: string | null;
+  sexo: string | null;
+  /** Data de nascimento em ISO (AAAA-MM-DD). */
+  dataNascimento: string | null;
   ativo: boolean;
   observacoes: string | null;
   totalEscalas: number;
@@ -15,6 +19,8 @@ export interface Equipe {
   nome: string;
   descricao: string | null;
   ativa: boolean;
+  coordenadorId: number | null;
+  coordenadorNome: string | null;
   quantidadeMinistros: number;
   ministros: Ministro[];
 }

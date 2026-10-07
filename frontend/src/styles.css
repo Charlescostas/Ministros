@@ -253,6 +253,11 @@ p { margin: 0; }
 .chip button { border: 0; background: transparent; cursor: pointer; color: #6366f1; font-size: 12px; padding: 0; }
 .chip button:hover { color: var(--perigo); }
 .chip-inativo { background: #f1f5f9; color: var(--texto-suave); border-color: var(--borda); }
+/* Coordenador da equipe (★ + rótulo) */
+.chip-coordenador { background: #eef2ff; border-color: #a5b4fc; color: #3730a3; font-weight: 600; }
+.chip-coordenador small { color: #6366f1; font-size: 12px; }
+/* Ministro que saiu da equipe depois da escala gerada: linha mantida no histórico */
+.bloco.fora-equipe { color: var(--alerta); font-weight: 600; }
 .equipe-rodape { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--borda); padding-top: 10px; }
 .equipe-rodape small { color: var(--texto-suave); }
 
@@ -290,6 +295,7 @@ p { margin: 0; }
 
 /* ---------------- Dashboard da escala (equipe x dia da semana) ---------------- */
 .dashboard { margin-bottom: 20px; }
+.dashboard-topo { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 .tabela-rolagem { overflow-x: auto; }
 .tabela-dashboard { min-width: 760px; }
 .tabela-dashboard .celula-equipe { min-width: 170px; }
@@ -391,6 +397,14 @@ p { margin: 0; }
 .doc-equipes th,
 .doc-equipes td { border: 1px solid #333; padding: 1px 8px; text-align: left; font-weight: 400; }
 .doc-equipes th { width: 110px; font-weight: 600; }
+/* Coordenador: primeiro da linha, em negrito e com cor de fundo */
+.doc-equipes td .doc-coordenador {
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 2px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
 .doc-obs { margin-top: 10px; font-size: 13px; line-height: 1.6; max-width: 82%; }
 

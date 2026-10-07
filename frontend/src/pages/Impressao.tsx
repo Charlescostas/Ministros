@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, mensagemErro } from '../api/client';
-import type { Configuracao, Equipe, Missa } from '../types';
+import type { Configuracao, Equipe, Ministro, Missa } from '../types';
 import { deslocarMes, mesAtual, opcoesDeMes, rotuloMes, rotuloMesCurto } from '../lib/format';
 
 const DIAS = [
@@ -54,8 +54,21 @@ export default function Impressao() {
     return equipe?.nome ?? nome ?? '—';
   };
 
+  const rotuloCoordenador = (m: Ministro): string => 
+    m.sexo?.trim().toLowerCase() === 'masculino' ? '(Coordenador)' : '(Coordenadora)';
+
   const rotuloEquipeLista = (equipe: Equipe): string =>
     equipe.numero != null ? `EQUIPE ${equipe.numero}` : equipe.nome;
+
+  /**
+   * Integrantes do quadro impresso: o coordenador vem **primeiro da linha**
+   * e os demais mantêm a ordem original (alfabética).
+   */
+  const membrosDaEquipe = (equipe: Equipe): Ministro[] =>
+    [...equipe.ministros].sort(
+      (a, b) =>
+        (a.id === equipe.coordenadorId ? 0 : 1) - (b.id === equipe.coordenadorId ? 0 : 1),
+    );
 
   return (
     <>
@@ -145,7 +158,23 @@ export default function Impressao() {
             {equipesOrganizadas.map((equipe) => (
               <tr key={equipe.id}>
                 <th>..::  Equipe {rotuloEquipeLista(equipe)}  ::..</th>
-                <td>{equipe.ministros.map((m) => m.nome).join('-') || 'Sem membros cadastrados'}</td>
+                <td>
+                  {equipe.ministros.length === 0
+                    ? 'Sem membros cadastrados'
+                    : membrosDaEquipe(equipe).map((m, i) => (
+                        <Fragment key={m.id}>
+                          {i > 0 && '-'}
+                          <span
+                            className={
+                              equipe.coordenadorId === m.id ? 'doc-coordenador' : undefined
+                            }
+                          >
+                            {m.nome}
+                            {equipe.coordenadorId === m.id && ` ${rotuloCoordenador(m)}`}
+                        </span>
+                        </Fragment>
+                      ))}
+                </td>
               </tr>
             ))}
           </tbody>
