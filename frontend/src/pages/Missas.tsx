@@ -147,7 +147,7 @@ export default function Missas() {
         </div>
         <div className="acoes-topo">
           <button type="button" className="botao" onClick={abrirGerador}>
-            Gerar equipes do mês
+            Gerar Escala do mês
           </button>
           <button type="button" className="botao botao-primario" onClick={novo}>
             + Nova missa

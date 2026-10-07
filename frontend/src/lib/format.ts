@@ -30,6 +30,24 @@ export function horaCurta(isoHora: string): string {
   return isoHora.slice(0, 5);
 }
 
+/** Colunas do dashboard, começando na segunda-feira (mesma ordem do documento impresso). */
+export const DIAS_SEMANA_ORDENADOS = [
+  'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo',
+];
+
+/** 0 = segunda-feira ... 6 = domingo. */
+export function indiceDiaSemana(iso: string): number {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return (new Date(ano, mes - 1, dia).getDay() + 6) % 7;
+}
+
+/** Primeiro (de) e último (ate) dia de um mês no formato AAAA-MM. */
+export function limitesDoMes(yyyyMm: string): { de: string; ate: string } {
+  const [ano, mes] = yyyyMm.split('-').map(Number);
+  const ultimo = new Date(ano, mes, 0).getDate();
+  return { de: `${yyyyMm}-01`, ate: `${yyyyMm}-${String(ultimo).padStart(2, '0')}` };
+}
+
 export function deslocarMes(yyyyMm: string, delta: number): string {
   const [ano, mes] = yyyyMm.split('-').map(Number);
   const d = new Date(ano, mes - 1 + delta, 1);

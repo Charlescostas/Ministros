@@ -199,6 +199,7 @@ p { margin: 0; }
 .tabela tr:last-child td { border-bottom: 0; }
 .tabela tbody tr:hover { background: #fafbff; }
 .tabela .num { text-align: right; width: 70px; }
+.centro { text-align: center; }
 .linha-inativa td { opacity: 0.55; }
 .bloco { display: block; color: var(--texto-suave); font-size: 12.5px; margin-top: 2px; }
 
@@ -287,6 +288,17 @@ p { margin: 0; }
 }
 .selecao-troca:focus { outline: 2px solid #c7d2fe; border-color: var(--primaria); }
 
+/* ---------------- Dashboard da escala (equipe x dia da semana) ---------------- */
+.dashboard { margin-bottom: 20px; }
+.tabela-rolagem { overflow-x: auto; }
+.tabela-dashboard { min-width: 760px; }
+.tabela-dashboard .celula-equipe { min-width: 170px; }
+.tabela-dashboard td.celula-zero { color: #cbd5e1; font-weight: 700; }
+.tabela-dashboard th .dia-cabecalho { display: block; color: var(--texto); }
+.tabela-dashboard th .bloco { color: var(--primaria-escura); font-weight: 700; }
+.tabela-dashboard tfoot td { background: #f8faff; border-top: 2px solid var(--borda); }
+.tabela-dashboard tfoot strong { color: var(--primaria-escura); }
+
 /* ---------------- Login ---------------- */
 .tela-login {
   min-height: 100vh; display: grid; place-items: center; padding: 24px;
@@ -298,7 +310,7 @@ p { margin: 0; }
   display: flex; flex-direction: column; gap: 16px;
 }
 .marca-login { text-align: center; margin-bottom: 6px; }
-.marca-login img { width: 96px; height: auto; mix-blend-mode: multiply; }
+.marca-login img { width: 110px; height: auto; mix-blend-mode: multiply; }
 .marca-login h1 { font-size: 21px; margin-top: 8px; }
 .marca-login p { color: var(--texto-suave); font-size: 13.5px; margin-top: 6px; }
 .cartao-login label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 600; }
@@ -311,7 +323,7 @@ p { margin: 0; }
 
 /* ---------------- Documento impresso (modelo da paróquia) ---------------- */
 .documento {
-  background: #fff;
+  background: rgba(252, 251, 251, 0.698)
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   box-shadow: var(--sombra);
@@ -321,7 +333,7 @@ p { margin: 0; }
 }
 .doc-titulo {
   text-align: center;
-  font-size: 25px;
+  font-size: 25px; 
   font-weight: 500;
   background: #e2e5ea;
   border-radius: 4px;
@@ -338,7 +350,7 @@ p { margin: 0; }
 .doc-identidade { text-align: center; }
 .doc-logo {
   display: block;
-  width: 78px;
+  width: 278px;
   height: auto;
   margin: 0 auto 6px;
   mix-blend-mode: multiply;

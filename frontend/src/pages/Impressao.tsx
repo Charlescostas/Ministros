@@ -99,7 +99,7 @@ export default function Impressao() {
       <article className="documento">
 
         <div className="doc-identidade">
-          <img className="doc-logo" src="/logo-calice.jpg" alt="Ministro da Eucaristia" />
+          <img className="doc-logo" src="/Santuario1.jpg" alt="Ministro da Eucaristia" />
           {config?.nomeParoquia && <h2 className="doc-paroquia">{config.nomeParoquia}</h2>}
           {config?.tituloGrupo && <h3 className="doc-grupo">{config.tituloGrupo}</h3>}
         </div>
@@ -144,7 +144,7 @@ export default function Impressao() {
           <tbody>
             {equipesOrganizadas.map((equipe) => (
               <tr key={equipe.id}>
-                <th>{rotuloEquipeLista(equipe)}</th>
+                <th>..::  Equipe {rotuloEquipeLista(equipe)}  ::..</th>
                 <td>{equipe.ministros.map((m) => m.nome).join('-') || 'Sem membros cadastrados'}</td>
               </tr>
             ))}

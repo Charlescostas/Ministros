@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, ApiError, mensagemErro } from '../api/client';
-import type { Equipe, EscalaItem } from '../types';
-import { dataPorExtenso, horaCurta, mesAtual, opcoesDeMes, rotuloMes } from '../lib/format';
+import type { Equipe, EscalaItem, Missa } from '../types';
+import {
+  DIAS_SEMANA_ORDENADOS,
+  dataPorExtenso,
+  horaCurta,
+  indiceDiaSemana,
+  limitesDoMes,
+  mesAtual,
+  opcoesDeMes,
+  rotuloMes,
+} from '../lib/format';
 
 interface Grupo {
   missaId: number;
@@ -18,11 +27,31 @@ interface GrupoEquipe {
   grupos: Grupo[];
 }
 
+/** Uma coluna do dashboard = um horário de missa (dia da semana + hora). */
+interface ColunaDashboard {
+  dow: number;
+  dia: string;
+  hora: string;
+}
+
+/** Uma linha do dashboard: quantidade de missas da equipe em cada horário. */
+interface LinhaDashboard {
+  chave: number | null;
+  nome: string;
+  numero: number | null;
+  inativa: boolean;
+  /** Quantidade de missas da equipe em cada coluna (horário). */
+  colunas: number[];
+  total: number;
+}
+
 export default function Escala() {
   const [mes, setMes] = useState(mesAtual());
   const [equipeId, setEquipeId] = useState('');
   const [itens, setItens] = useState<EscalaItem[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [missasMes, setMissasMes] = useState<Missa[]>([]);
+  const [mostrarDashboard, setMostrarDashboard] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -44,6 +73,15 @@ export default function Escala() {
   useEffect(() => {
     api<Equipe[]>('/equipes').then(setEquipes).catch(() => undefined);
   }, []);
+
+  // Missas do mês (com e sem equipe) - base do dashboard por dia da semana.
+  useEffect(() => {
+    const { de, ate } = limitesDoMes(mes);
+    setMissasMes([]);
+    api<Missa[]>('/missas', { query: { de, ate } })
+      .then(setMissasMes)
+      .catch(() => setMissasMes([]));
+  }, [mes]);
 
   const equipeSelecionada = equipes.find((e) => String(e.id) === equipeId);
 
@@ -85,6 +123,64 @@ export default function Escala() {
     itens.forEach((i) => mapa.set(i.ministroNome, (mapa.get(i.ministroNome) ?? 0) + 1));
     return [...mapa.entries()].sort((a, b) => b[1] - a[1]);
   }, [itens]);
+
+  /** Matriz equipe x horário: quantas missas do mês cada equipe tem em cada dia+horário. */
+  const dashboard = useMemo(() => {
+    // 1) colunas: cada dia da semana + horário que existe no mês, em ordem de semana.
+    const mapaColunas = new Map<string, ColunaDashboard>();
+    missasMes.forEach((m) => {
+      const dow = indiceDiaSemana(m.data);
+      const hora = horaCurta(m.hora);
+      const chave = `${dow}|${hora}`;
+      if (!mapaColunas.has(chave)) {
+        mapaColunas.set(chave, { dow, dia: DIAS_SEMANA_ORDENADOS[dow], hora });
+      }
+    });
+    const colunas = [...mapaColunas.values()].sort((a, b) => a.dow - b.dow || a.hora.localeCompare(b.hora));
+    const indice = new Map<string, number>(colunas.map((c, i) => [`${c.dow}|${c.hora}`, i]));
+
+    // 2) linhas: uma por equipe (+ "Sem equipe"), preenchidas coluna a coluna.
+    const linhas = new Map<number | null, LinhaDashboard>();
+    const novaLinha = (chave: number | null, nome: string, numero: number | null, inativa: boolean): LinhaDashboard => ({
+      chave, nome, numero, inativa,
+      colunas: new Array(colunas.length).fill(0),
+      total: 0,
+    });
+
+    equipes.forEach((e) => linhas.set(e.id, novaLinha(e.id, e.nome, e.numero, !e.ativa)));
+
+    missasMes.forEach((m) => {
+      const ci = indice.get(`${indiceDiaSemana(m.data)}|${horaCurta(m.hora)}`);
+      const chave = m.equipeId;
+      let linha = linhas.get(chave ?? null);
+      if (!linha) {
+        linha = novaLinha(null, m.equipeNome ?? 'Sem equipe', null, false);
+        linhas.set(null, linha);
+      }
+      if (ci !== undefined) linha.colunas[ci] += 1;
+      linha.total += 1;
+    });
+
+    const ordem = (l: LinhaDashboard) => (l.chave === null ? Number.MAX_SAFE_INTEGER : l.numero ?? Number.MAX_SAFE_INTEGER);
+    const ordenadas = [...linhas.values()]
+      .sort((a, b) => ordem(a) - ordem(b) || a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    // 3) totais por horário (coluna) e geral.
+    const totaisColunas = colunas.map((_, ci) =>
+      ordenadas.reduce((soma, l) => soma + l.colunas[ci], 0),
+    );
+
+    const semEquipe = ordenadas.find((l) => l.chave === null)?.total ?? 0;
+    return {
+      linhas: ordenadas,
+      colunas,
+      totaisColunas,
+      totalMissas: missasMes.length,
+      comEquipe: missasMes.length - semEquipe,
+      semEquipe,
+      equipesUsadas: ordenadas.filter((l) => l.chave !== null && l.total > 0).length,
+    };
+  }, [missasMes, equipes]);
 
   async function gerar() {
     if (!equipeId) {
@@ -164,28 +260,11 @@ export default function Escala() {
       <header className="pagina-topo area-impressao">
         <div>
           <h1>Escala mensal</h1>
-          <p className="subtitulo">
-            {itens.length} atribuição(ões) em {rotuloMes(mes)}
-          </p>
         </div>
         <div className="acoes-topo">
-          <button type="button" className="botao" onClick={() => window.print()}>
-            Imprimir
-          </button>
           <a className="botao botao-secundario" href="/impressao">
-            Modelo da paróquia
+            Imprimir Escala
           </a>
-          <button
-            type="button"
-            className="botao botao-secundario"
-            onClick={limpar}
-            disabled={itens.length === 0}
-          >
-            Limpar
-          </button>
-          <button type="button" className="botao botao-primario" onClick={gerar} disabled={gerando}>
-            {gerando ? 'Gerando…' : itens.length > 0 ? 'Gerar novamente' : 'Gerar escala'}
-          </button>
         </div>
       </header>
 
@@ -194,15 +273,6 @@ export default function Escala() {
           {opcoesDeMes().map((m) => (
             <option key={m} value={m}>
               {rotuloMes(m)}
-            </option>
-          ))}
-        </select>
-
-        <select className="selecao" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
-          <option value="">Todas as equipes</option>
-          {equipes.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nome}
             </option>
           ))}
         </select>
@@ -218,19 +288,111 @@ export default function Escala() {
       {erro && <div className="aviso erro">{erro}</div>}
       {aviso && <div className="aviso sucesso">{aviso}</div>}
 
+      {mostrarDashboard && (
+        <section className="dashboard area-tela" aria-label="Dashboard da escala">
+          <div className="grade-cartoes">
+            <div className="cartao">
+              <span className="cartao-valor">{dashboard.totalMissas}</span>
+              <span className="cartao-rotulo">Missas em {rotuloMes(mes)}</span>
+            </div>
+            <div className="cartao">
+              <span className="cartao-valor">{dashboard.comEquipe}</span>
+              <span className="cartao-rotulo">Com equipe atribuída</span>
+            </div>
+            <div className={`cartao ${dashboard.semEquipe > 0 ? 'cartao-destaque' : ''}`}>
+              <span className="cartao-valor">{dashboard.semEquipe}</span>
+              <span className="cartao-rotulo">Sem equipe</span>
+            </div>
+            <div className="cartao">
+              <span className="cartao-valor">{dashboard.equipesUsadas}</span>
+              <span className="cartao-rotulo">Equipes em escala no mês</span>
+            </div>
+          </div>
+
+          <div className="painel">
+            <div className="painel-topo">
+              <div>
+                <h2>Missas</h2>
+                <p className="dica">
+                  {rotuloMes(mes)} · quantidade de missas de cada equipe em cada dia da semana e horário.
+                </p>
+              </div>
+            </div>
+
+            <div className="tabela-rolagem">
+              <table className="tabela tabela-dashboard">
+                <thead>
+                  <tr>
+                    <th>Equipe</th>
+                    {dashboard.colunas.map((c) => (
+                      <th key={`${c.dow}-${c.hora}`} className="centro">
+                        <span className="dia-cabecalho">{c.dia}</span>
+                        <small className="bloco">{c.hora}</small>
+                      </th>
+                    ))}
+                    <th className="centro">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboard.totalMissas > 0 &&
+                    dashboard.linhas.map((l) => (
+                      <tr key={l.chave === null ? 'sem-equipe' : l.chave} className={l.total === 0 || l.inativa ? 'linha-inativa' : undefined}>
+                        <td className="celula-equipe">
+                          <strong>{l.numero ? `EQUIPE ${l.numero}` : l.nome}</strong>
+                          {l.numero && <small className="bloco">{l.nome}</small>}
+                          {l.inativa && <small className="bloco">equipe inativa</small>}
+                        </td>
+                        {l.colunas.map((v, i) => (
+                          <td key={i} className={`centro ${v === 0 ? 'celula-zero' : ''}`}>
+                            {v === 0 ? '·' : v}
+                          </td>
+                        ))}
+                        <td className="centro">
+                          <strong>{l.total}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  {dashboard.totalMissas === 0 && (
+                    <tr>
+                      <td colSpan={dashboard.colunas.length + 2} className="vazio">
+                        Nenhuma missa cadastrada em {rotuloMes(mes)}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {dashboard.totalMissas > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td>
+                        <strong>Total de missas</strong>
+                      </td>
+                      {dashboard.totaisColunas.map((v, i) => (
+                        <td key={i} className="centro">
+                          <strong>{v}</strong>
+                        </td>
+                      ))}
+                      <td className="centro">
+                        <strong>{dashboard.totalMissas}</strong>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+
+            <p className="dica">
+              Use “Gerar Escala do mês” na página <strong>Missas</strong> para distribuir as
+              equipes respeitando a quantidade de vezes em cada dia da semana e horário.
+            </p>
+          </div>
+        </section>
+      )}
+
       <div className="area-escala">
         <div className="coluna-principal">
           {carregando && <div className="carregando">Carregando escala…</div>}
 
-          {!carregando && estrutura.length === 0 && (
-            <section className="painel">
-              <p className="vazio">
-                Nenhuma escala gerada para {rotuloMes(mes)}. Selecione a equipe e clique em
-                “Gerar escala”.
-              </p>
-            </section>
-          )}
-
+ 
           {estrutura.map((grupoEquipe) => (
             <section key={grupoEquipe.equipeId} className="bloco-equipe">
               <h2 className="titulo-equipe">

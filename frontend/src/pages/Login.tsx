@@ -31,9 +31,9 @@ export default function Login() {
     <div className="tela-login">
       <form className="cartao-login" onSubmit={submeter}>
         <div className="marca-login">
-          <img src="/logo-eucaristia.jpg" alt="Ministro da Eucaristia" />
-          <h1>Escala de Ministros</h1>
-          <p>Comunhão e serviço — organização da escala mensal</p>
+          <img src="/Santurario.jpg" alt="Ministro da Eucaristia" />
+          <h1>Ministros da Comunhão</h1>
+          <p></p>
         </div>
 
         <label>

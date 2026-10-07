@@ -90,8 +90,12 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   automaticamente entre as missas do mês (regras abaixo), com resumo por equipe.
 * **Funções da missa** — liturgista, leitor, ministro da comunhão, músico, acólito…
   com **ordem de exibição** e **vagas por missa**.
-* **Escala mensal** — geração automática por equipe e mês, troca manual de ministro linha a linha,
-  remoção de item, limpeza da escala, painel com a carga de cada ministro e **impressão**.
+* **Escala mensal** — **dashboard** no topo com a quantidade de missas do mês de cada equipe,
+  com **uma coluna separada para cada horário** (dia da semana + hora, ex.: `Sábado 17:00`,
+  `Domingo 19:30`): cada célula mostra quantas missas daquele horário a equipe cobre, com totais
+  por equipe, total de missas em cada horário e cartões de resumo; geração automática por equipe
+  e mês, troca manual de ministro linha a linha, remoção de item, limpeza da escala, painel com a
+  carga de cada ministro e **impressão** (o dashboard é só de tela e não entra na impressão).
 * **Escala impressa** — documento mensal no **modelo do PDF** da paróquia (título do mês,
   cabeçalho da paróquia, tabela *Data | Dia da Semana | Horário | Equipe | Observação*,
   quadro de equipes com os integrantes, texto “Obs” e caixa “Missa dos Ministros”),
