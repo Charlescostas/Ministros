@@ -30,6 +30,31 @@ export function horaCurta(isoHora: string): string {
   return isoHora.slice(0, 5);
 }
 
+/** "05/10/2026" - data curta a partir de AAAA-MM-DD. */
+export function dataCurta(iso: string): string {
+  if (!iso) return '—';
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+}
+
+/** Valor em reais: "R$ 1.234,56". */
+export function moeda(valor: number | null | undefined): string {
+  if (valor == null || Number.isNaN(valor)) return 'R$ 0,00';
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/** Só o número em reais: "1.234,56" — usado nas colunas estreitas da matriz anual. */
+export function moedaSemSimbolo(valor: number | null | undefined): string {
+  if (valor == null || Number.isNaN(valor)) return '0,00';
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Siglas de Jan a Dez, na ordem dos meses. */
+export const MESES_SIGLAS = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+];
+
 /** Colunas do dashboard, começando na segunda-feira (mesma ordem do documento impresso). */
 export const DIAS_SEMANA_ORDENADOS = [
   'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo',

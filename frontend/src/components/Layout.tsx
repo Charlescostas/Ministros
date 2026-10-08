@@ -7,6 +7,7 @@ const ITENS = [
   { para: '/equipes', rotulo: 'Equipes', icone: '👥' },
   { para: '/missas', rotulo: 'Missas', icone: '⛪' },
   { para: '/escala', rotulo: 'Painel Escala ', icone: '☰' },
+  { para: '/financeiro', rotulo: 'Financeiro', icone: '💲' },
   { para: '/impressao', rotulo: 'Impressão Escala', icone: '🖶' },
   { para: '/funcoes', rotulo: 'Funções', icone: '⚙' },
   { para: '/configuracoes', rotulo: 'Cabeçalho', icone: '✎' },

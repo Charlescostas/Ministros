@@ -7,7 +7,11 @@ import Ministros from './pages/Ministros';
 import Equipes from './pages/Equipes';
 import Missas from './pages/Missas';
 import Escala from './pages/Escala';
+import Financeiro from './pages/Financeiro';
 import Impressao from './pages/Impressao';
+import ImpressaoCaixa from './pages/ImpressaoCaixa';
+import ImpressaoCaixaAnual from './pages/ImpressaoCaixaAnual';
+import ImpressaoMensalidadesAnual from './pages/ImpressaoMensalidadesAnual';
 import Funcoes from './pages/Funcoes';
 import Configuracoes from './pages/Configuracoes';
 
@@ -35,6 +39,10 @@ export default function App() {
             <Route path="/equipes" element={<Equipes />} />
             <Route path="/missas" element={<Missas />} />
             <Route path="/escala" element={<Escala />} />
+            <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/caixa" element={<ImpressaoCaixa />} />
+            <Route path="/caixa/anual" element={<ImpressaoCaixaAnual />} />
+            <Route path="/mensalidades/anual" element={<ImpressaoMensalidadesAnual />} />
             <Route path="/impressao" element={<Impressao />} />
             <Route path="/funcoes" element={<Funcoes />} />
             <Route path="/configuracoes" element={<Configuracoes />} />

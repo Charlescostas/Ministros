@@ -97,6 +97,18 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   navegação por mês, filtro por equipe e selo “escala gerada/pendente”.
   A página também tem o botão **Gerar equipes do mês**, que distribui as equipes
   automaticamente entre as missas do mês (regras abaixo), com resumo por equipe.
+* **Financeiro** — **mensalidades recebidas dos ministros** (competência `AAAA-MM`, data do
+  recebimento, valor, forma de pagamento e observação), **doações recebidas** (data,
+  descrição/doador, categoria `Dízimo / Oferta / Campanha / Festa / Doação / Outro`,
+  valor e observação) e **despesas realizadas** (data, descrição, categoria e valor),
+  com navegação por mês, filtro por ministro, cartões de **mensalidades**, **doações**,
+  **despesas** e **saldo do mês** e **fechamento do ano** mês a mês
+  (mensalidades pela competência; doações e despesas pela data).
+  O formulário **Nova mensalidade** tem o checkbox **“Baixar mais de uma mensalidade”**:
+  marcado, o campo de competência vira período **De → Até** e é lançada **uma mensalidade
+  por competência** do mesmo ministro (competências já lançadas são ignoradas e a quantidade
+  aparece no botão antes de salvar).
+  Excluir um ministro que já tem mensalidades é bloqueado.
 * **Funções da missa** — liturgista, leitor, ministro da comunhão, músico, acólito…
   com **ordem de exibição** e **vagas por missa**.
 * **Escala mensal** — **dashboard** no topo com a quantidade de missas do mês de cada equipe,
@@ -110,6 +122,20 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   quadro de equipes com os integrantes — o **coordenador aparece primeiro da linha**,
   em negrito, com **cor de fundo** e “(coordenador)” —, texto “Obs” e caixa “Missa dos Ministros”),
   com botão **Imprimir / Salvar em PDF** (papel A4).
+* **Caixa impresso** — página `/caixa?mes=AAAA-MM`, aberta pelo botão **Imprimir caixa**
+  do Financeiro, no mesmo modelo dos demais documentos da paróquia: título
+  **“Caixa {Mês} {Ano}”**, navegação de mês, tabela de **entradas — mensalidades**,
+  tabela de **entradas — doações**, tabela de **saídas — despesas**, resumo com
+  **saldo em caixa** e linha de assinatura do **responsável pelo caixa**,
+  com botão **Imprimir / Salvar em PDF** (papel A4).
+* **Caixa anual impresso** — página `/caixa/anual?ano=AAAA`, aberta pelo botão **Caixa anual**:
+  movimentação **mês a mês** (mensalidades, doações, despesas e saldo de cada mês), linha de
+  **totais do ano**, resumo com saldo em caixa e assinatura — mensalidades agrupadas pela
+  competência, doações e despesas pela data do lançamento; navegação de ano e impressão A4.
+* **Mensalidades anuais impressas** — página `/mensalidades/anual?ano=AAAA`, aberta pelo botão
+  **Mensalidades anual**: quadro (matriz) com **um ministro por linha** e os **12 meses** em
+  colunas, total por ministro e por mês (ministros inativos marcados quando têm lançamento),
+  impresso em **A4 paisagem** com o cabeçalho repetido em cada folha.
 * **Cabeçalho** — configuração dos textos do documento impresso (paróquia, título do grupo,
   “Obs”, caixa “Missa dos Ministros” e bloco de adendos, ex.: escala da Missa da Saúde).
 * **Login simples** — token Bearer em memória (12 h), todas as rotas `/api` exigem autenticação.
@@ -205,6 +231,13 @@ Ministros/
 | POST | `/api/escalas/equipes/gerar` | `{mes, substituir}` → distribui as **equipes** nas missas |
 | PUT/DELETE | `/api/escalas/{id}` | troca ministro / remove item |
 | POST | `/api/escalas/limpar?mes=&equipeId=` | apaga a escala do mês |
+| GET/POST | `/api/mensalidades` | lista (`?de=&ate=&ministroId=&competenciaDe=&competenciaAte=`) / cria |
+| POST | `/api/mensalidades/lote` | baixa em lote: `competenciaDe`…`competenciaAte` |
+| PUT/DELETE | `/api/mensalidades/{id}` | edita / exclui |
+| GET/POST | `/api/despesas` | lista (`?de=&ate=`) / cria |
+| PUT/DELETE | `/api/despesas/{id}` | edita / exclui |
+| GET/POST | `/api/doacoes` | lista (`?de=&ate=`) / cria |
+| PUT/DELETE | `/api/doacoes/{id}` | edita / exclui |
 | GET/PUT | `/api/configuracao` | textos do cabeçalho da escala impressa |
 
 Todas as rotas exigem `Authorization: Bearer <token>` (exceto `/api/auth/login`).

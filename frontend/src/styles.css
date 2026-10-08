@@ -329,7 +329,7 @@ p { margin: 0; }
 
 /* ---------------- Documento impresso (modelo da paróquia) ---------------- */
 .documento {
-  background: rgba(252, 251, 251, 0.698)
+  background: rgba(252, 251, 251, 0.698);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   box-shadow: var(--sombra);
@@ -419,6 +419,49 @@ p { margin: 0; }
 
 .numero-equipe { color: var(--primaria); font-size: 13px; letter-spacing: 0.04em; }
 
+/* ---------------- Impressão do caixa ---------------- */
+.doc-rodape {
+  display: flex; justify-content: space-between; gap: 16px;
+  font-size: 12px; color: var(--texto-suave); margin: 0 0 6px;
+}
+.doc-secao {
+  font-size: 14px; font-weight: 700; color: var(--texto);
+  background: #d7dbe1; padding: 4px 8px; margin: 16px 0 0; border-radius: 3px 3px 0 0;
+}
+.doc-secao small { font-weight: 400; color: var(--texto-suave); }
+.doc-num { text-align: right; width: 110px; }
+.doc-total td {
+  font-weight: 800; border-top: 2px solid #333; background: #f1f4f8;
+}
+.doc-resumo { border-collapse: collapse; width: 45%; margin-top: 10px; font-size: 13px; }
+.doc-resumo td { border: 1px solid #333; padding: 3px 10px; }
+.doc-resumo .doc-total td { background: #e2e5ea; }
+.doc-assinaturas { display: flex; gap: 40px; margin-top: 54px; }
+.doc-assinatura {
+  flex: 1; text-align: center; font-size: 13px;
+  border-top: 1px solid #333; padding-top: 4px;
+}
+
+/* ---------------- Impressões anuais (caixa e mensalidades) ---------------- */
+.doc-tabela th.doc-num { text-align: right; }
+.doc-nota { font-size: 11px; color: var(--texto-suave); text-align: right; margin: 6px 0 0; }
+
+/* Matriz anual: ministros (linhas) x meses (colunas). */
+.doc-matriz { border-collapse: collapse; width: 100%; font-size: 11.5px; margin-top: 8px; }
+.doc-matriz th,
+.doc-matriz td { border: 1px solid #333; padding: 3px 6px; white-space: nowrap; }
+.doc-matriz th { background: #d7dbe1; text-align: center; font-weight: 700; color: var(--texto); }
+.doc-matriz td { text-align: right; }
+.doc-matriz .rotulo { text-align: left; font-weight: 600; }
+.doc-matriz .centro { text-align: center; color: var(--texto-suave); }
+.doc-matriz td.total { font-weight: 700; }
+.doc-matriz .inativo { font-weight: 400; color: var(--texto-suave); }
+.doc-matriz .doc-num { width: auto; }
+.doc-matriz tbody tr:nth-child(even) { background: #eceef1; }
+.doc-matriz tfoot td { font-weight: 700; background: #f1f4f8; border-top: 2px solid #333; }
+.doc-matriz thead { display: table-header-group; }
+.doc-largura { max-width: 1180px; }
+
 /* ---------------- Responsivo ---------------- */
 @media (max-width: 1080px) {
   .area-escala { grid-template-columns: 1fr; }
@@ -451,4 +494,11 @@ p { margin: 0; }
   .doc-tabela tbody tr:nth-child(even) { background: #eceef1; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .doc-tabela th, .doc-paroquia, .doc-grupo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .doc-tabela tr, .doc-equipes tr, .doc-caixa { break-inside: avoid; }
+  .doc-secao, .doc-total td, .doc-resumo .doc-total td, .doc-assinatura {
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .doc-matriz tbody tr:nth-child(even), .doc-matriz th, .doc-matriz tfoot td {
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .doc-tabela tr, .doc-matriz tr { break-inside: avoid; }
 }

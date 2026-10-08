@@ -6,6 +6,7 @@ import com.igreja.escala.entity.Ministro;
 import com.igreja.escala.exception.ApiException;
 import com.igreja.escala.repository.EquipeRepository;
 import com.igreja.escala.repository.EscalaRepository;
+import com.igreja.escala.repository.MensalidadeRepository;
 import com.igreja.escala.repository.MinistroRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +21,14 @@ public class MinistroService {
     private final MinistroRepository ministros;
     private final EquipeRepository equipes;
     private final EscalaRepository escalas;
+    private final MensalidadeRepository mensalidades;
 
-    public MinistroService(MinistroRepository ministros, EquipeRepository equipes, EscalaRepository escalas) {
+    public MinistroService(MinistroRepository ministros, EquipeRepository equipes, EscalaRepository escalas,
+                           MensalidadeRepository mensalidades) {
         this.ministros = ministros;
         this.equipes = equipes;
         this.escalas = escalas;
+        this.mensalidades = mensalidades;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +68,11 @@ public class MinistroService {
         long total = escalas.contarPorMinistro(id);
         if (total > 0) {
             throw ApiException.conflito("Nao e possivel excluir: o ministro possui " + total + " item(ns) de escala.");
+        }
+        long totalMensalidades = mensalidades.countByMinistroId(id);
+        if (totalMensalidades > 0) {
+            throw ApiException.conflito(
+                    "Nao e possivel excluir: o ministro possui " + totalMensalidades + " mensalidade(s) lancada(s).");
         }
         for (Equipe e : equipes.findAll()) {
             boolean alterada = e.getMinistros().removeIf(x -> x.getId().equals(id));

@@ -13,6 +13,38 @@ export interface Ministro {
   totalEscalas: number;
 }
 
+/** Mensalidade recebida de um ministro. */
+export interface Mensalidade {
+  id: number;
+  ministroId: number;
+  ministroNome: string;
+  competencia: string;
+  valor: number;
+  dataRecebimento: string;
+  formaPagamento: string | null;
+  observacao: string | null;
+}
+
+/** Despesa realizada pela comunhão. */
+export interface Despesa {
+  id: number;
+  data: string;
+  descricao: string;
+  categoria: string | null;
+  valor: number;
+  observacao: string | null;
+}
+
+/** Doação recebida (oferta, dízimo, campanha, festa…). */
+export interface Doacao {
+  id: number;
+  data: string;
+  descricao: string;
+  categoria: string | null;
+  valor: number;
+  observacao: string | null;
+}
+
 export interface Equipe {
   id: number;
   numero: number | null;
