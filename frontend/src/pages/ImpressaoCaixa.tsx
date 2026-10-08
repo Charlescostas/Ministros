@@ -155,7 +155,7 @@ export default function ImpressaoCaixa() {
         </table>
 
         <h2 className="doc-secao">
-          Entradas (Outras entradas) <small>({doacoes.length})</small>
+          Outras entradas <small>({doacoes.length})</small>
         </h2>
         <table className="doc-tabela">
           <thead>
@@ -181,14 +181,14 @@ export default function ImpressaoCaixa() {
             {doacoes.length === 0 && (
               <tr>
                 <td colSpan={4} className="centro">
-                  Nenhuma doação recebida em {rotuloMes(mes)}.
+                  Nenhuma entrada recebida em {rotuloMes(mes)}.
                 </td>
               </tr>
             )}
           </tbody>
           <tfoot>
             <tr className="doc-total">
-              <td colSpan={3}>Total de doações</td>
+              <td colSpan={3}>Total de outras entradas</td>
               <td className="doc-num">{moeda(totalDoacoes)}</td>
             </tr>
           </tfoot>

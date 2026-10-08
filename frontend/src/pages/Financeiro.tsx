@@ -326,7 +326,7 @@ export default function Financeiro() {
   }
 
   function excluirDoacao(d: Doacao) {
-    if (!window.confirm(`Excluir a Outras entradas "${d.descricao}" de ${dataCurta(d.data)}?`)) return;
+    if (!window.confirm(`Excluir a entrada "${d.descricao}" de ${dataCurta(d.data)}?`)) return;
     api<void>(`/doacoes/${d.id}`, { method: 'DELETE' })
       .then(() => {
         carregar();
@@ -375,7 +375,7 @@ export default function Financeiro() {
             Mensalidades anual
           </Link>
           <button type="button" className="botao" onClick={novaDoacao}>
-            + Outras entradas
+            + Entrada
           </button>
           <button type="button" className="botao" onClick={novaDespesa}>
             + Despesa
@@ -427,7 +427,7 @@ export default function Financeiro() {
         </div>
         <div className="cartao cartao-destaque">
           <div className="cartao-valor">{moeda(saldo)}</div>
-          <div className="cartao-rotulo">Saldo do mês (mensalidades + Outras entradas − despesas)</div>
+          <div className="cartao-rotulo">Saldo do mês (mensalidades + entradas − despesas)</div>
         </div>
       </div>
 
@@ -517,7 +517,7 @@ export default function Financeiro() {
             {doacoes.length === 0 && (
               <tr>
                 <td colSpan={5} className="vazio">
-                  Nenhuma Outras entradas recebida em {rotuloMes(mes)}.
+                  Nenhuma entrada recebida em {rotuloMes(mes)}.
                 </td>
               </tr>
             )}
@@ -774,7 +774,7 @@ export default function Financeiro() {
       )}
 
       {formDoacao && (
-        <Modal titulo={formDoacao.id ? 'Editar Outras entradas' : 'Nova Outras entradas'} aoFechar={() => setFormDoacao(null)}>
+        <Modal titulo={formDoacao.id ? 'Editar entrada' : 'Nova entrada'} aoFechar={() => setFormDoacao(null)}>
           <form
             className="formulario"
             onSubmit={(e: FormEvent) => {
@@ -812,7 +812,7 @@ export default function Financeiro() {
               <input
                 value={formDoacao.descricao}
                 onChange={(e) => setFormDoacao({ ...formDoacao, descricao: e.target.value })}
-                placeholder="Ex.: Outras entradas saldos, contribuição anônima…"
+                placeholder="Ex.: saldo de caixa, contribuição anônima…"
                 required
               />
             </label>

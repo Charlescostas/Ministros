@@ -35,7 +35,7 @@ export interface Despesa {
   observacao: string | null;
 }
 
-/** Doação recebida (oferta, dízimo, campanha, festa…). */
+/** Outras entradas (oferta, dízimo, campanha, festa…). */
 export interface Doacao {
   id: number;
   data: string;
