@@ -60,6 +60,9 @@ export const DIAS_SEMANA_ORDENADOS = [
   'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo',
 ];
 
+/** Siglas na ordem de indiceDiaSemana (segunda = 0): SEG, TER … DOM. */
+export const DIAS_SIGLAS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+
 /** 0 = segunda-feira ... 6 = domingo. */
 export function indiceDiaSemana(iso: string): number {
   const [ano, mes, dia] = iso.split('-').map(Number);

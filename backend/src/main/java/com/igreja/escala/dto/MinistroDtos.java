@@ -15,6 +15,8 @@ public final class MinistroDtos {
             String funcaoPreferida,
             String sexo,
             LocalDate dataNascimento,
+            String estadoCivil,
+            Long conjugeId,
             Boolean ativo,
             String observacoes) {}
 
@@ -26,6 +28,9 @@ public final class MinistroDtos {
             String funcaoPreferida,
             String sexo,
             LocalDate dataNascimento,
+            String estadoCivil,
+            Long conjugeId,
+            String conjugeNome,
             boolean ativo,
             String observacoes,
             long totalEscalas) {}

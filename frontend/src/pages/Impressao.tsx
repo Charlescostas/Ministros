@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, mensagemErro } from '../api/client';
-import type { Configuracao, Equipe, Ministro, Missa } from '../types';
+import Modal from '../components/Modal';
+import type { Configuracao, Equipe, EscalaItem, Ministro, Missa } from '../types';
 import { deslocarMes, mesAtual, opcoesDeMes, rotuloMes, rotuloMesCurto } from '../lib/format';
+import { abrirWhatsapp, textoEscalaDoMes } from '../lib/whatsapp';
 
 const DIAS = [
   'DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA',
@@ -23,7 +25,11 @@ export default function Impressao() {
   const [missas, setMissas] = useState<Missa[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [config, setConfig] = useState<Configuracao | null>(null);
+  const [itens, setItens] = useState<EscalaItem[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  /** Prévia do resumo do mês, mostrada em tela antes de abrir o WhatsApp. */
+  const [preview, setPreview] = useState<{ titulo: string; texto: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
   const [ano, mesNum] = mes.split('-').map(Number);
   const de = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
@@ -40,6 +46,13 @@ export default function Impressao() {
     api<Equipe[]>('/equipes').then(setEquipes).catch((ex) => setErro(mensagemErro(ex)));
     api<Configuracao>('/configuracao').then(setConfig).catch((ex) => setErro(mensagemErro(ex)));
   }, []);
+
+  /** Escala gerada do mês (todas as equipes), usada no resumo enviado por WhatsApp. */
+  useEffect(() => {
+    api<EscalaItem[]>('/escalas', { query: { mes } })
+      .then(setItens)
+      .catch((ex) => setErro(mensagemErro(ex)));
+  }, [mes]);
 
   const equipesOrganizadas = [...equipes].sort((a, b) => {
     if (a.numero != null && b.numero != null) return a.numero - b.numero;
@@ -70,6 +83,34 @@ export default function Impressao() {
         (a.id === equipe.coordenadorId ? 0 : 1) - (b.id === equipe.coordenadorId ? 0 : 1),
     );
 
+  /** Mostra em tela o resumo da escala do mês (daí copia ou abre o WhatsApp). */
+  function enviarResumo() {
+    setCopiado(false);
+    setPreview({
+      titulo: `Resumo da escala de ${rotuloMes(mes)}`,
+      texto: textoEscalaDoMes(mes, itens, config),
+    });
+  }
+
+  /** Copia o texto da prévia; sem permissão, deixa o texto selecionado para Ctrl+C. */
+  async function copiarPreview() {
+    if (!preview) return;
+    try {
+      await navigator.clipboard.writeText(preview.texto);
+      setCopiado(true);
+    } catch {
+      const caixa = document.getElementById('texto-whatsapp');
+      if (caixa) {
+        const faixa = document.createRange();
+        faixa.selectNodeContents(caixa);
+        const selecao = window.getSelection();
+        selecao?.removeAllRanges();
+        selecao?.addRange(faixa);
+      }
+      setErro('Não foi possível copiar sozinho — o texto ficou selecionado, use Ctrl + C.');
+    }
+  }
+
   return (
     <>
       <div className="area-tela">
@@ -84,6 +125,14 @@ export default function Impressao() {
             <Link className="botao" to="/configuracoes">
               Editar cabeçalho e textos
             </Link>
+            <button
+              type="button"
+              className="botao botao-secundario"
+              onClick={enviarResumo}
+              title="Confira o resumo da escala do mês e envie pelo WhatsApp"
+            >
+              Resumo no WhatsApp
+            </button>
             <button type="button" className="botao botao-primario" onClick={() => window.print()}>
               Imprimir / Salvar em PDF
             </button>
@@ -189,6 +238,40 @@ export default function Impressao() {
           </div>
         )}
       </article>
+
+      {preview && (
+        <Modal titulo={preview.titulo} aoFechar={() => setPreview(null)} largura="amplo">
+          <p className="dica">Depois de abrir o WhatsApp, você escolhe o contato ou o grupo.</p>
+
+          {itens.length === 0 && (
+            <div className="aviso erro">
+              Nenhuma escala gerada em {rotuloMes(mes)} — gere na página <strong>Missas</strong>
+              (botão “Gerar Escala do mês”).
+            </div>
+          )}
+
+          <pre id="texto-whatsapp" className="preview-whatsapp">{preview.texto}</pre>
+
+          <div className="formulario-acoes">
+            <button
+              type="button"
+              className="botao"
+              onClick={copiarPreview}
+              disabled={itens.length === 0}
+            >
+              {copiado ? 'Copiado ✓' : 'Copiar texto'}
+            </button>
+            <button
+              type="button"
+              className="botao botao-primario"
+              onClick={() => abrirWhatsapp(null, preview.texto)}
+              disabled={itens.length === 0}
+            >
+              Abrir no WhatsApp
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

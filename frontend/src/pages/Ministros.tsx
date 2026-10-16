@@ -9,9 +9,14 @@ const VAZIO: Partial<Ministro> = {
   email: '',
   sexo: '',
   dataNascimento: '',
+  estadoCivil: '',
+  conjugeId: null,
   ativo: true,
   observacoes: '',
 };
+
+/** Estados civis oferecidos no cadastro (mesma lista do backend). */
+const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'];
 
 export default function Ministros() {
   const [lista, setLista] = useState<Ministro[]>([]);
@@ -19,6 +24,8 @@ export default function Ministros() {
   const [erro, setErro] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Ministro> | null>(null);
   const [salvando, setSalvando] = useState(false);
+  /** Ministros inteiros (sem filtro de busca), usados para escolher o conjuge. */
+  const [candidatos, setCandidatos] = useState<Ministro[]>([]);
 
   function carregar(termo: string) {
     api<Ministro[]>('/ministros', { query: { busca: termo } })
@@ -30,6 +37,25 @@ export default function Ministros() {
     carregar(busca);
   }, [busca]);
 
+  /**
+   * Ministros inteiros (sem filtro de busca), usados para escolher o conjuge.
+   * A chave muda ao abrir o formulário: "novo" para cadastro, o id na edição.
+   */
+  const chaveFormulario = form ? (form.id ?? 'novo') : null;
+
+  useEffect(() => {
+    if (chaveFormulario === null) return;
+    api<Ministro[]>('/ministros')
+      .then(setCandidatos)
+      .catch(() => setCandidatos([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveFormulario]);
+
+  /** Escolhas de conjuge: tira o próprio ministro e quem já é casado com outra pessoa. */
+  const disponiveisParaCasar = candidatos.filter(
+    (c) => c.id !== form?.id && (!c.conjugeId || c.conjugeId === form?.id),
+  );
+
   function salvar() {
     if (!form) return;
     setSalvando(true);
@@ -39,6 +65,8 @@ export default function Ministros() {
       email: form.email || null,
       sexo: form.sexo || null,
       dataNascimento: form.dataNascimento || null,
+      estadoCivil: form.estadoCivil || null,
+      conjugeId: form.conjugeId ?? null,
       ativo: form.ativo !== false,
       observacoes: form.observacoes || null,
     };
@@ -92,6 +120,7 @@ export default function Ministros() {
               <th>Nome</th>
               <th>Telefone</th>
               <th>Sexo</th>
+              <th>Estado civil</th>
               <th className="num">Escalas</th>
               <th>Situação</th>
               <th></th>
@@ -106,6 +135,10 @@ export default function Ministros() {
                 </td>
                 <td>{m.telefone ?? '—'}</td>
                 <td>{m.sexo ?? '—'}</td>
+                <td>
+                  {m.estadoCivil ?? '—'}
+                  {m.conjugeNome && <small className="bloco">com {m.conjugeNome}</small>}
+                </td>
                 <td className="num">{m.totalEscalas}</td>
                 <td>
                   <span className={`selo ${m.ativo ? 'selo-ok' : 'selo-off'}`}>
@@ -124,7 +157,7 @@ export default function Ministros() {
             ))}
             {lista.length === 0 && (
               <tr>
-                <td colSpan={6} className="vazio">
+                <td colSpan={7} className="vazio">
                   Nenhum ministro encontrado.
                 </td>
               </tr>
@@ -194,6 +227,51 @@ export default function Ministros() {
                   onChange={(e) => setForm({ ...form, dataNascimento: e.target.value })}
                 />
               </label>
+            </div>
+
+            <div className="linha-dupla">
+              <label>
+                Estado civil
+                <select
+                  value={form.estadoCivil ?? ''}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      estadoCivil: e.target.value,
+                      // só casado(a) mantém cônjuge
+                      conjugeId: e.target.value === 'Casado(a)' ? (form.conjugeId ?? null) : null,
+                    })
+                  }
+                >
+                  <option value="">—</option>
+                  {ESTADOS_CIVIS.map((op) => (
+                    <option key={op} value={op}>
+                      {op}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {form.estadoCivil === 'Casado(a)' && (
+                <label>
+                  Casado(a) com
+                  <select
+                    value={form.conjugeId != null ? String(form.conjugeId) : ''}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        conjugeId: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  >
+                    <option value="">—</option>
+                    {disponiveisParaCasar.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </div>
 
             <label>

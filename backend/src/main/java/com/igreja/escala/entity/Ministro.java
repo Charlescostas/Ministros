@@ -32,6 +32,15 @@ public class Ministro {
     @Column(length = 12)
     private String sexo;
 
+    /** Estado civil: "Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viuvo(a)" ou "Uniao estavel". */
+    @Column(name = "estado_civil", length = 20)
+    private String estadoCivil;
+
+    /** Ministro(a) com quem e casado(a) (auto-relacionamento na mesma tabela). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conjuge_id")
+    private Ministro conjuge;
+
     /** Data de nascimento (opcional), em ISO AAAA-MM-DD. */
     @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
@@ -62,6 +71,10 @@ public class Ministro {
     public void setFuncaoPreferida(String funcaoPreferida) { this.funcaoPreferida = funcaoPreferida; }
     public String getSexo() { return sexo; }
     public void setSexo(String sexo) { this.sexo = sexo; }
+    public String getEstadoCivil() { return estadoCivil; }
+    public void setEstadoCivil(String estadoCivil) { this.estadoCivil = estadoCivil; }
+    public Ministro getConjuge() { return conjuge; }
+    public void setConjuge(Ministro conjuge) { this.conjuge = conjuge; }
     public LocalDate getDataNascimento() { return dataNascimento; }
     public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
     public boolean isAtivo() { return ativo; }

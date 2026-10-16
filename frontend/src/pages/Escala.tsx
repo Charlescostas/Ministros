@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, ApiError, mensagemErro } from '../api/client';
+import { api, mensagemErro } from '../api/client';
+import Modal from '../components/Modal';
 import type { Equipe, EscalaItem, Missa } from '../types';
 import {
   DIAS_SEMANA_ORDENADOS,
@@ -11,6 +12,7 @@ import {
   opcoesDeMes,
   rotuloMes,
 } from '../lib/format';
+import { abrirWhatsapp, textoEscalaDoMinistro } from '../lib/whatsapp';
 
 interface Grupo {
   missaId: number;
@@ -34,6 +36,14 @@ interface ColunaDashboard {
   hora: string;
 }
 
+/** Quem tem serviço no mês: nome, telefone e quantidade (base dos botões de WhatsApp). */
+interface Carga {
+  ministroId: number;
+  nome: string;
+  telefone: string | null;
+  total: number;
+}
+
 /** Uma linha do dashboard: quantidade de missas da equipe em cada horário. */
 interface LinhaDashboard {
   chave: number | null;
@@ -54,8 +64,14 @@ export default function Escala() {
   const [mostrarDashboard, setMostrarDashboard] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [gerando, setGerando] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  /** Texto da mensagem do WhatsApp aberto em tela, para conferir antes de enviar. */
+  const [preview, setPreview] = useState<{
+    titulo: string;
+    texto: string;
+    telefone: string | null;
+  } | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
   function carregar() {
     setCarregando(true);
@@ -119,9 +135,23 @@ export default function Escala() {
   }, [itens]);
 
   const carga = useMemo(() => {
-    const mapa = new Map<string, number>();
-    itens.forEach((i) => mapa.set(i.ministroNome, (mapa.get(i.ministroNome) ?? 0) + 1));
-    return [...mapa.entries()].sort((a, b) => b[1] - a[1]);
+    const mapa = new Map<number, Carga>();
+    itens.forEach((i) => {
+      const atual = mapa.get(i.ministroId);
+      if (atual) {
+        atual.total += 1;
+      } else {
+        mapa.set(i.ministroId, {
+          ministroId: i.ministroId,
+          nome: i.ministroNome,
+          telefone: i.telefoneMinistro,
+          total: 1,
+        });
+      }
+    });
+    return [...mapa.values()].sort(
+      (a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'),
+    );
   }, [itens]);
 
   /** Matriz equipe x horário: quantas missas do mês cada equipe tem em cada dia+horário. */
@@ -182,36 +212,6 @@ export default function Escala() {
     };
   }, [missasMes, equipes]);
 
-  async function gerar() {
-    if (!equipeId) {
-      setErro('Selecione a equipe para gerar a escala.');
-      return;
-    }
-    if (
-      itens.length > 0 &&
-      !window.confirm(
-        `Já existe escala de ${equipeSelecionada?.nome} em ${rotuloMes(mes)}. Deseja substituí-la?`,
-      )
-    ) {
-      return;
-    }
-    setGerando(true);
-    setErro(null);
-    setAviso(null);
-    try {
-      const gerados = await api<EscalaItem[]>('/escalas/gerar', {
-        method: 'POST',
-        body: { equipeId: Number(equipeId), mes, substituir: true },
-      });
-      setItens(gerados);
-      setAviso(`Escala de ${rotuloMes(mes)} gerada: ${gerados.length} atribuição(ões).`);
-    } catch (ex) {
-      setErro(ex instanceof ApiError ? ex.message : 'Erro ao gerar escala');
-    } finally {
-      setGerando(false);
-    }
-  }
-
   async function limpar() {
     if (!equipeId) {
       setErro('Selecione a equipe para limpar a escala.');
@@ -226,6 +226,38 @@ export default function Escala() {
       setAviso('Escala apagada.');
     } catch (ex) {
       setErro(mensagemErro(ex));
+    }
+  }
+
+  /** Mostra em tela a escala individual do ministro (só os serviços dele no mês). */
+  function enviarEscalaDoMinistro(cargaMinistro: Carga) {
+    const doMinistro = itens.filter((i) => i.ministroId === cargaMinistro.ministroId);
+    setCopiado(false);
+    setPreview({
+      titulo: `Escala de ${cargaMinistro.nome} · ${rotuloMes(mes)}`,
+      texto: textoEscalaDoMinistro(mes, cargaMinistro.nome, doMinistro),
+      telefone: cargaMinistro.telefone,
+    });
+  }
+
+  /** Copia o texto do preview para a área de transferência. */
+  async function copiarPreview() {
+    if (!preview) return;
+    try {
+      await navigator.clipboard.writeText(preview.texto);
+      setCopiado(true);
+    } catch {
+      // Sem permissão ou sem API de área de transferência: deixa o texto selecionado
+      // para copiar com Ctrl+C.
+      const caixa = document.getElementById('texto-whatsapp');
+      if (caixa) {
+        const faixa = document.createRange();
+        faixa.selectNodeContents(caixa);
+        const selecao = window.getSelection();
+        selecao?.removeAllRanges();
+        selecao?.addRange(faixa);
+      }
+      setErro('Não foi possível copiar sozinho — o texto ficou selecionado, use Ctrl + C.');
     }
   }
 
@@ -282,10 +314,7 @@ export default function Escala() {
           >
             Limpar
           </button>
-          <button type="button" className="botao botao-primario" onClick={gerar} disabled={gerando}>
-            {gerando ? 'Gerando…' : itens.length > 0 ? 'Gerar novamente' : 'Gerar escala'}
-          </button>
-        </div>
+         </div>
       </header>
 
       <div className="barra-filtros area-impressao">
@@ -430,16 +459,6 @@ export default function Escala() {
       <div className="area-escala">
         <div className="coluna-principal">
           {carregando && <div className="carregando">Carregando escala…</div>}
-
-          {!carregando && estrutura.length === 0 && (
-            <section className="painel">
-              <p className="vazio">
-                Nenhuma escala gerada para {rotuloMes(mes)}. Selecione a equipe em cima e clique
-                em “Gerar escala”.
-              </p>
-            </section>
-          )}
-
  
           {estrutura.map((grupoEquipe) => (
             <section key={grupoEquipe.equipeId} className="bloco-equipe">
@@ -524,10 +543,22 @@ export default function Escala() {
           <aside className="painel painel-lateral area-impressao">
             <h3>Serviços no mês</h3>
             <ul className="lista-carga">
-              {carga.map(([nome, total]) => (
-                <li key={nome}>
-                  <span>{nome}</span>
-                  <strong>{total}</strong>
+              {carga.map((c) => (
+                <li key={c.ministroId}>
+                  <span>{c.nome}</span>
+                  <strong>{c.total}</strong>
+                  <button
+                    type="button"
+                    className="botao-mini"
+                    title={
+                      c.telefone
+                        ? `Enviar a escala de ${c.nome} para ${c.telefone}`
+                        : `Enviar a escala de ${c.nome} — sem telefone cadastrado, você escolhe o contato`
+                    }
+                    onClick={() => enviarEscalaDoMinistro(c)}
+                  >
+                    enviar
+                  </button>
                 </li>
               ))}
             </ul>
@@ -535,6 +566,44 @@ export default function Escala() {
           </aside>
         )}
       </div>
+
+      {preview && (
+        <Modal titulo={preview.titulo} aoFechar={() => setPreview(null)} largura="amplo">
+          <p className="dica">
+            {preview.telefone
+              ? `Mensagem para ${preview.telefone} — já endereçada ao número cadastrado.`
+              : 'Depois de abrir o WhatsApp, você escolhe o contato ou o grupo.'}
+          </p>
+
+          {itens.length === 0 && (
+            <div className="aviso erro">
+              Nenhuma escala gerada em {rotuloMes(mes)} — use “Gerar Escala do mês” na página
+              <strong> Missas</strong>.
+            </div>
+          )}
+
+          <pre id="texto-whatsapp" className="preview-whatsapp">{preview.texto}</pre>
+
+          <div className="formulario-acoes">
+            <button
+              type="button"
+              className="botao"
+              onClick={copiarPreview}
+              disabled={itens.length === 0}
+            >
+              {copiado ? 'Copiado ✓' : 'Copiar texto'}
+            </button>
+            <button
+              type="button"
+              className="botao botao-primario"
+              onClick={() => abrirWhatsapp(preview.telefone, preview.texto)}
+              disabled={itens.length === 0}
+            >
+              Abrir no WhatsApp
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

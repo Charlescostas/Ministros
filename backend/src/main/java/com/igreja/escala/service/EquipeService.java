@@ -175,10 +175,16 @@ public class EquipeService {
     private EquipeDtos.Resposta paraResposta(Equipe e, Map<Long, Long> contagem) {
         List<MinistroDtos.Resposta> membros = e.getMinistros().stream()
                 .sorted((a, b) -> a.getNome().compareToIgnoreCase(b.getNome()))
-                .map(m -> new MinistroDtos.Resposta(
-                        m.getId(), m.getNome(), m.getTelefone(), m.getEmail(), m.getFuncaoPreferida(),
-                        m.getSexo(), m.getDataNascimento(),
-                        m.isAtivo(), m.getObservacoes(), contagem.getOrDefault(m.getId(), 0L)))
+                .map(m -> {
+                    Ministro conjuge = m.getConjuge();
+                    return new MinistroDtos.Resposta(
+                            m.getId(), m.getNome(), m.getTelefone(), m.getEmail(), m.getFuncaoPreferida(),
+                            m.getSexo(), m.getDataNascimento(),
+                            m.getEstadoCivil(),
+                            conjuge != null ? conjuge.getId() : null,
+                            conjuge != null ? conjuge.getNome() : null,
+                            m.isAtivo(), m.getObservacoes(), contagem.getOrDefault(m.getId(), 0L));
+                })
                 .toList();
         Ministro coordenador = e.getCoordenador();
         return new EquipeDtos.Resposta(

@@ -80,9 +80,13 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
 
 * **Painel** — resumo: ministros ativos, equipes, missas do mês, itens de escala e próximas missas.
 * **Ministros** — cadastro completo (nome, telefone, e-mail, **sexo**, **data de nascimento**,
-  observações, ativo/inativo), busca e total de serviços já cumpridos.
+  **estado civil** com **cônjuge** — outro ministro, quando *Casado(a)* —, observações,
+  ativo/inativo), busca e total de serviços já cumpridos.
   O campo antigo *função preferida* saiu do formulário: o valor já cadastrado continua no banco
   e ainda vale como critério de desempate na geração da escala.
+  O casamento fica registrado **dos dois lados** (os dois passam a *Casado(a)* e apontam um para o
+  outro); não é possível casar consigo mesmo nem com quem já é casado com outra pessoa, e ao
+  excluir um ministro o conjuge volta a *Solteiro(a)*.
 * **Equipes** — cadastro com membros (adicionar/remover por *chips* ou no formulário),
   **coordenador** (escolhido no formulário entre os membros e marcado com ★ no cartão),
   ativa/inativa e **número da equipe** (`EQUIPE 1`, `EQUIPE 2`…) usado no documento impresso.
@@ -117,6 +121,13 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   por equipe, total de missas em cada horário e cartões de resumo; geração automática por equipe
   e mês, troca manual de ministro linha a linha, remoção de item, limpeza da escala, painel com a
   carga de cada ministro e **impressão** (o dashboard é só de tela e não entra na impressão).
+* **Escala no WhatsApp** — botão **Enviar no WhatsApp** no topo da página, que abre o WhatsApp
+  com o **resumo da escala do mês** (uma missa por bloco, **emoji de cada função**, cabeçalho
+  com paróquia e grupo, negrito com `*asteriscos*`) para você escolher o contato ou o grupo; e
+  um botão **enviar** ao lado de cada ministro em *Serviços no mês*, com a mensagem
+  **individual** da pessoa (só os serviços dela, com data/horário/local e a vaga) já endereçada
+  ao **telefone cadastrado** — sem telefone, abre o WhatsApp para você escolher o contato.
+  Tudo montado em `frontend/src/lib/whatsapp.ts`.
 * **Escala impressa** — documento mensal no **modelo do PDF** da paróquia (título do mês,
   cabeçalho da paróquia, tabela *Data | Dia da Semana | Horário | Equipe | Observação*,
   quadro de equipes com os integrantes — o **coordenador aparece primeiro da linha**,

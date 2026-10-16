@@ -12,6 +12,9 @@ public interface MinistroRepository extends JpaRepository<Ministro, Long> {
 
     List<Ministro> findByAtivoTrueOrderByNomeAsc();
 
+    /** Ministros que tem `id` como conjuge (usado para limpar o casamento na exclusao). */
+    List<Ministro> findByConjugeId(Long conjugeId);
+
     long countByAtivoTrue();
 
     @Query("select m from Ministro m where lower(m.nome) like lower(concat('%', :busca, '%')) order by m.nome asc")

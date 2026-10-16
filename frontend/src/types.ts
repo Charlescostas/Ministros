@@ -8,6 +8,11 @@ export interface Ministro {
   sexo: string | null;
   /** Data de nascimento em ISO (AAAA-MM-DD). */
   dataNascimento: string | null;
+  /** Estado civil: "Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União estável". */
+  estadoCivil: string | null;
+  /** Ministro(a) com quem é casado(a) (auto-relacionamento). */
+  conjugeId: number | null;
+  conjugeNome: string | null;
   ativo: boolean;
   observacoes: string | null;
   totalEscalas: number;

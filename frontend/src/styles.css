@@ -235,6 +235,15 @@ p { margin: 0; }
 .check-destacado { color: var(--texto-suave); }
 .formulario-acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 
+/* Texto da mensagem do WhatsApp, exibido para conferencia antes de enviar. */
+.preview-whatsapp {
+  white-space: pre-wrap; word-break: break-word;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 13.5px; line-height: 1.55;
+  background: #f8fafc; border: 1px solid var(--borda); border-radius: 8px;
+  padding: 12px 14px; max-height: 46vh; overflow: auto; margin: 10px 0 14px;
+}
+
 /* ---------------- Equipes ---------------- */
 .grade-equipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .cartao-equipe {
@@ -272,9 +281,10 @@ p { margin: 0; }
 .painel-lateral { position: sticky; top: 20px; }
 .lista-carga { list-style: none; margin: 0; padding: 0; }
 .lista-carga li {
-  display: flex; justify-content: space-between; gap: 8px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 8px 2px; border-bottom: 1px solid var(--borda); font-size: 14px;
 }
+.lista-carga li span { flex: 1; min-width: 0; }
 .lista-carga li:last-child { border-bottom: 0; }
 .lista-carga strong { color: var(--primaria); }
 .bloco-equipe { margin-bottom: 24px; }
@@ -395,7 +405,7 @@ p { margin: 0; }
   font-size: 13px;
 }
 .doc-equipes th,
-.doc-equipes td { border: 1px solid #333; padding: 1px 8px; text-align: left; font-weight: 400; }
+.doc-equipes td { border: 1px solid #333; padding: 1px 10px; text-align: left; font-weight: 400; }
 .doc-equipes th { width: 110px; font-weight: 600; }
 /* Coordenador: primeiro da linha, em negrito e com cor de fundo */
 .doc-equipes td .doc-coordenador {
@@ -482,7 +492,7 @@ p { margin: 0; }
 @media print {
   body { background: #fff; font-size: 12px; }
   .barra-lateral, .acoes-topo, .barra-filtros, .acoes, .painel-lateral,
-  .aviso, .area-tela, .selecao-troca { display: none !important; }
+  .aviso, .area-tela, .selecao-troca, .modal-fundo { display: none !important; }
   .conteudo { padding: 0; max-width: none; }
   .painel, .cartao-missa { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
   .area-escala { display: block; }
@@ -501,4 +511,26 @@ p { margin: 0; }
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
   .doc-tabela tr, .doc-matriz tr { break-inside: avoid; }
+
+  /*
+   * Compacto para a escala do mês caber em uma folha A4:
+   * logo menor, fontes de 12px e espaçamento apertado (só na impressão;
+   * na tela o documento continua no modelo grande).
+   */
+  .doc-logo { width: 190px; margin: 0 auto 2px; }
+  .doc-paroquia { font-size: 14px; margin: 2px 0; }
+  .doc-grupo { font-size: 12px; margin: 2px 0 4px; }
+  .doc-titulo { font-size: 19px; margin: 0 0 4px; padding: 1px 8px; }
+  .doc-corpo { gap: 12px; }
+  .doc-tabela { font-size: 12px; }
+  .doc-tabela th { font-size: 12px; padding: 2px 6px; }
+  .doc-tabela td { padding: 2px 6px; }
+  .doc-adendos { font-size: 12px; line-height: 1.4; margin: 6px 0 0; }
+  .doc-equipes { font-size: 12px; margin-top: 8px; }
+  .doc-equipes th, .doc-equipes td { padding: 1px 6px; }
+  .doc-equipes th { width: 90px; }
+  .doc-obs { font-size: 12px; line-height: 1.4; margin-top: 6px; }
+  .doc-caixa { font-size: 12px; padding: 2px 8px 6px; margin-top: 4px; }
+  .doc-caixa h4 { font-size: 12px; margin: 0 0 2px; }
+  .doc-caixa p { font-size: 12px; line-height: 1.4; }
 }
