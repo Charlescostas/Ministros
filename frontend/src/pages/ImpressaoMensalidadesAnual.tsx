@@ -12,7 +12,9 @@ const ANO_ATUAL = new Date().getFullYear();
  * horizontal) para caber o quadro inteiro; o cabeçalho se repete em cada folha.
  *
  * As células usam a **competência** da mensalidade (o mês que ela representa);
- * ministros inativos aparecem marcados quando têm lançamento no ano.
+ * ministros inativos aparecem marcados quando têm lançamento no ano. A lista é
+ * alfabética **por casais**: o cônjuge aparece logo abaixo do ministro, mesmo
+ * quando os dois nomes estariam distantes no alfabeto.
  */
 export default function ImpressaoMensalidadesAnual() {
   const [params, setParams] = useSearchParams();
@@ -50,15 +52,32 @@ export default function ImpressaoMensalidadesAnual() {
     });
     const comLancamento = new Set(mensalidades.map((m) => m.ministroId));
 
-    return ministros
-      .filter((m) => m.ativo || comLancamento.has(m.id))
+    const noQuadro = ministros.filter((m) => m.ativo || comLancamento.has(m.id));
+    const porId = new Map(noQuadro.map((m) => [m.id, m]));
+
+    // Ordem alfabética, mas com o cônjuge logo em seguida: o quadro é lido por
+    // casais (quem não é casado — ou cujo cônjuge não está no quadro — segue sozinho).
+    const ordenados: Ministro[] = [];
+    const listados = new Set<number>();
+    noQuadro
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-      .map((m) => {
-        const valores = MESES_SIGLAS.map(
-          (_, i) => porChave.get(`${m.id}|${ano}-${String(i + 1).padStart(2, '0')}`) ?? 0,
-        );
-        return { ministro: m, valores, total: valores.reduce((soma, v) => soma + v, 0) };
+      .forEach((m) => {
+        if (listados.has(m.id)) return;
+        listados.add(m.id);
+        ordenados.push(m);
+        const conjuge = m.conjugeId != null ? porId.get(m.conjugeId) : undefined;
+        if (conjuge && !listados.has(conjuge.id)) {
+          listados.add(conjuge.id);
+          ordenados.push(conjuge);
+        }
       });
+
+    return ordenados.map((m) => {
+      const valores = MESES_SIGLAS.map(
+        (_, i) => porChave.get(`${m.id}|${ano}-${String(i + 1).padStart(2, '0')}`) ?? 0,
+      );
+      return { ministro: m, valores, total: valores.reduce((soma, v) => soma + v, 0) };
+    });
   }, [ano, ministros, mensalidades]);
 
   const totaisMes = MESES_SIGLAS.map((_, i) => linhas.reduce((soma, l) => soma + l.valores[i], 0));
