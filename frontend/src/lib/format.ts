@@ -63,6 +63,24 @@ export const DIAS_SEMANA_ORDENADOS = [
 /** Siglas na ordem de indiceDiaSemana (segunda = 0): SEG, TER … DOM. */
 export const DIAS_SIGLAS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
 
+/** Nomes completos dos dias, na ordem de `Date.getDay()` (0 = domingo). */
+export const DIAS_SEMANA_EXTENSO = [
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+];
+
+/** Dia da semana por extenso ("Segunda-feira" … "Domingo") a partir de AAAA-MM-DD. */
+export function diaSemanaExtenso(iso: string): string {
+  if (!iso) return '';
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return DIAS_SEMANA_EXTENSO[new Date(ano, mes - 1, dia).getDay()];
+}
+
 /** 0 = segunda-feira ... 6 = domingo. */
 export function indiceDiaSemana(iso: string): number {
   const [ano, mes, dia] = iso.split('-').map(Number);

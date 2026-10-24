@@ -1,8 +1,30 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api, ApiError, mensagemErro } from '../api/client';
 import Modal from '../components/Modal';
 import type { Equipe, GeracaoEquipes, Missa } from '../types';
-import { dataPorExtenso, deslocarMes, horaCurta, mesAtual, opcoesDeData, rotuloMes } from '../lib/format';
+import {
+  DIAS_SEMANA_EXTENSO,
+  dataPorExtenso,
+  deslocarMes,
+  diaSemanaExtenso,
+  horaCurta,
+  mesAtual,
+  opcoesDeData,
+  rotuloMes,
+} from '../lib/format';
+
+/** Padrões já preenchidos no cadastro de missa (é só apagar se não servir). */
+const LOCAL_PADRAO = 'Santuário';
+const CELEBRANTE_PADRAO = 'Pe. Edison';
+
+/** Missas fixas da semana, para cadastrar o mês de uma vez: dia (0 = domingo) e hora. */
+const MISSAS_PADRAO = [
+  { dia: 4, hora: '19:30' }, // quinta-feira
+  { dia: 6, hora: '17:00' }, // sábado
+  { dia: 0, hora: '08:00' }, // domingo
+  { dia: 0, hora: '19:30' }, // domingo
+];
 
 /** Converte o mapa { "DOMINGO": 3, ... } em texto legivel. */
 function rotulosDias(mapa: Record<string, number>): string {
@@ -29,8 +51,10 @@ export default function Missas() {
   const [missas, setMissas] = useState<Missa[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [form, setForm] = useState<FormMissa | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [cadastrando, setCadastrando] = useState(false);
 
   const [mostrarGerador, setMostrarGerador] = useState(false);
   const [substituir, setSubstituir] = useState(false);
@@ -50,6 +74,7 @@ export default function Missas() {
   }
 
   useEffect(() => {
+    setAviso(null);
     carregar();
   }, [mes, equipeId]);
 
@@ -58,15 +83,35 @@ export default function Missas() {
   }, []);
 
   function novo() {
+    const data = `${mes}-01`;
     setForm({
-      data: `${mes}-01`,
+      data,
       hora: '19:00',
-      titulo: '',
-      celebrante: '',
-      local: '',
+      // título já nasce com o dia da semana da data escolhida
+      titulo: diaSemanaExtenso(data),
+      celebrante: CELEBRANTE_PADRAO,
+      local: LOCAL_PADRAO,
       equipeId: '',
       observacoes: '',
       destaque: false,
+    });
+  }
+
+  /**
+   * Troca a data da missa. Enquanto o título for só o dia da semana (ou estiver
+   * vazio) ele acompanha a data; assim que você digitar outra coisa, fica o que
+   * você escreveu.
+   */
+  function mudarData(nova: string) {
+    setForm((atual) => {
+      if (!atual) return atual;
+      const titulo = atual.titulo.trim();
+      const automatico = !titulo || DIAS_SEMANA_EXTENSO.includes(titulo);
+      return {
+        ...atual,
+        data: nova,
+        titulo: automatico ? diaSemanaExtenso(nova) : atual.titulo,
+      };
     });
   }
 
@@ -136,6 +181,77 @@ export default function Missas() {
       .finally(() => setGerando(false));
   }
 
+  /**
+   * Cadastra de uma vez as missas fixas do mês selecionado — quinta 19:30,
+   * sábado 17:00 e domingo 08:00 e 19:30 — com o dia da semana no título, o
+   * local e o celebrante padrões. O que já existir (mesma data e hora) é pulado.
+   */
+  async function cadastrarPadroes() {
+    setAviso(null);
+    setErro(null);
+
+    // confere o mês inteiro, mesmo com filtro de equipe lá em cima
+    let atuais: Missa[] = [];
+    try {
+      atuais = await api<Missa[]>('/missas', { query: { de, ate } });
+    } catch (ex) {
+      setErro(mensagemErro(ex));
+      return;
+    }
+    const existentes = new Set(atuais.map((m) => `${m.data}|${horaCurta(m.hora)}`));
+
+    const [ano, mesNum] = mes.split('-').map(Number);
+    const ultimoDia = new Date(ano, mesNum, 0).getDate();
+    const aCriar: { data: string; hora: string; titulo: string }[] = [];
+    for (let dia = 1; dia <= ultimoDia; dia++) {
+      const data = `${mes}-${String(dia).padStart(2, '0')}`;
+      const diaSemana = new Date(ano, mesNum - 1, dia).getDay();
+      MISSAS_PADRAO.filter((p) => p.dia === diaSemana)
+        .filter((p) => !existentes.has(`${data}|${p.hora}`))
+        .forEach((p) => aCriar.push({ data, hora: p.hora, titulo: diaSemanaExtenso(data) }));
+    }
+
+    if (aCriar.length === 0) {
+      setAviso(`Todas as missas padrão de ${rotuloMes(mes)} já estão cadastradas.`);
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Cadastrar ${aCriar.length} missa(s) padrão de ${rotuloMes(mes)}?\n\n` +
+          'Quinta 19:30 · sábado 17:00 · domingo 08:00 e 19:30,\n' +
+          `com o dia da semana no título, local “${LOCAL_PADRAO}” e celebrante “${CELEBRANTE_PADRAO}”.`,
+      )
+    ) {
+      return;
+    }
+
+    setCadastrando(true);
+    try {
+      for (const m of aCriar) {
+        await api('/missas', {
+          method: 'POST',
+          body: {
+            data: m.data,
+            hora: m.hora,
+            titulo: m.titulo,
+            celebrante: CELEBRANTE_PADRAO,
+            local: LOCAL_PADRAO,
+            equipeId: null,
+            observacoes: null,
+            destaque: false,
+          },
+        });
+      }
+      setAviso(`${aCriar.length} missa(s) cadastrada(s) em ${rotuloMes(mes)}.`);
+      carregar();
+    } catch (ex) {
+      setErro(mensagemErro(ex));
+    } finally {
+      setCadastrando(false);
+    }
+  }
+
   const datas = opcoesDeData();
 
   return (
@@ -146,6 +262,14 @@ export default function Missas() {
           <p className="subtitulo">{rotuloMes(mes)} · {missas.length} missa(s)</p>
         </div>
         <div className="acoes-topo">
+          <button
+            type="button"
+            className="botao"
+            onClick={cadastrarPadroes}
+            disabled={cadastrando}
+          >
+            {cadastrando ? 'Cadastrando…' : 'Cadastrar missas do mês'}
+          </button>
           <button type="button" className="botao" onClick={abrirGerador}>
             Gerar Escala do mês
           </button>
@@ -155,6 +279,7 @@ export default function Missas() {
         </div>
       </header>
 
+      {aviso && <div className="aviso">{aviso}</div>}
       {erro && <div className="aviso erro">{erro}</div>}
 
       <div className="barra-filtros">
@@ -240,7 +365,7 @@ export default function Missas() {
                 Data *
                 <select
                   value={form.data}
-                  onChange={(e) => setForm({ ...form, data: e.target.value })}
+                  onChange={(e) => mudarData(e.target.value)}
                   required
                 >
                   {datas.map((d) => (
@@ -345,14 +470,16 @@ export default function Missas() {
             <p className="dica">
               Para cada missa de <strong>{rotuloMes(mes)}</strong> a equipe é escolhida nesta ordem:
               <br />
-              <strong>1.</strong> quem <strong>menos atuou nesse mesmo dia da semana</strong> (segunda,
-              terça…) nos <strong>meses anteriores</strong>;
+              <strong>1.</strong> quem tem <strong>menos missas no mês</strong> (as equipes ficam
+              com quantidades parecidas);
               <br />
-              <strong>2.</strong> quem menos atuou nesse dia da semana <strong>no mês atual</strong>;
+              <strong>2.</strong> quem tem <strong>menos missas nesse mesmo dia e horário</strong>{' '}
+              (somando o histórico gravado dos meses anteriores, quando ativado nas
+              configurações) — assim uma equipe que já faz quinta 19:30 e domingo 8h não
+              acumula esses horários;
               <br />
-              <strong>3.</strong> quem tem menos missas no mês;
-              <br />
-              <strong>4.</strong> menor histórico geral. Empate: menor número da equipe.
+              <strong>3.</strong> quem tem menos missas nesse dia da semana; <strong>4.</strong>{' '}
+              menor total geral. Empate: menor número da equipe.
             </p>
 
             <label className="check">
@@ -371,6 +498,16 @@ export default function Missas() {
                 <div className="aviso sucesso">
                   {geracao.atribuidas} equipe(s) atribuída(s) e {geracao.mantidas} mantida(s) em{' '}
                   {geracao.totalMissas} missa(s) de {rotuloMes(geracao.mes)}.
+                  {geracao.historicoConsiderado
+                    ? ' Os horários de meses anteriores entraram no equilíbrio.'
+                    : ' Neste mês o equilíbrio usou só as missas do próprio mês (histórico começa mais tarde).'}
+                  {geracao.historicoId && (
+                    <>
+                      {' '}
+                      <Link to="/escala/historico">Ver histórico deste registro</Link> — membros das
+                      equipes e missas por dia da semana daquele momento.
+                    </>
+                  )}
                 </div>
 
                 <table className="tabela">

@@ -8,6 +8,7 @@ const PADRAO: Configuracao = {
   textoObs: '',
   textoMissaMinistros: '',
   adendos: '',
+  historicoDesde: null,
 };
 
 export default function Configuracoes() {
@@ -102,6 +103,24 @@ export default function Configuracoes() {
             />
             <small className="dica">
               Use quebras de linha; o texto é exatamente como escrito (mesma fonte).
+            </small>
+          </label>
+
+          <h3>Geração da escala</h3>
+
+          <label>
+            Considerar o histórico da escala a partir de
+            <input
+              type="month"
+              value={form.historicoDesde ?? ''}
+              onChange={(e) => setForm({ ...form, historicoDesde: e.target.value || null })}
+            />
+            <small className="dica">
+              Ao gerar a escala, cada equipe é equilibrada pelos <strong>horários que já
+              cumpriu</strong> (gravados no histórico a cada geração): quem já faz quinta 19:30 e
+              domingo 8h não acumula esses horários em cima de quem os faz menos. Escolha o mês
+              a partir do qual essa regra vale — os meses antes dele são gerados só com o
+              equilíbrio do próprio mês. <strong>Em branco = usar desde já.</strong>
             </small>
           </label>
 

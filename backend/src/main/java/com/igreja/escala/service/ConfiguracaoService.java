@@ -2,6 +2,7 @@ package com.igreja.escala.service;
 
 import com.igreja.escala.dto.ConfiguracaoDtos;
 import com.igreja.escala.entity.Configuracao;
+import com.igreja.escala.exception.ApiException;
 import com.igreja.escala.repository.ConfiguracaoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +29,20 @@ public class ConfiguracaoService {
         c.setTextoObs(dados.textoObs());
         c.setTextoMissaMinistros(dados.textoMissaMinistros());
         c.setAdendos(dados.adendos());
+        c.setHistoricoDesde(validarHistoricoDesde(dados.historicoDesde()));
         configuracoes.save(c);
         return paraResposta(c);
+    }
+
+    /** Mes (AAAA-MM) a partir do qual a geracao considera o historico; vazio = sempre. */
+    private String validarHistoricoDesde(String valor) {
+        String limpo = valor == null ? "" : valor.trim();
+        if (limpo.isEmpty()) return null;
+        if (!limpo.matches("\\d{4}-(0[1-9]|1[0-2])")) {
+            throw ApiException.regra("Mes invalido em 'considerar historico a partir de'. "
+                    + "Use o formato AAAA-MM (ex.: 2026-11) ou deixe em branco.");
+        }
+        return limpo;
     }
 
     private Configuracao carregar() {
@@ -48,6 +61,6 @@ public class ConfiguracaoService {
     private ConfiguracaoDtos.Resposta paraResposta(Configuracao c) {
         return new ConfiguracaoDtos.Resposta(
                 c.getNomeParoquia(), c.getTituloGrupo(), c.getTextoObs(),
-                c.getTextoMissaMinistros(), c.getAdendos());
+                c.getTextoMissaMinistros(), c.getAdendos(), c.getHistoricoDesde());
     }
 }

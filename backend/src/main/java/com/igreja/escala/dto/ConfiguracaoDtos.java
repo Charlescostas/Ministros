@@ -9,12 +9,14 @@ public final class ConfiguracaoDtos {
             String tituloGrupo,
             String textoObs,
             String textoMissaMinistros,
-            String adendos) {}
+            String adendos,
+            String historicoDesde) {}
 
     public record Resposta(
             String nomeParoquia,
             String tituloGrupo,
             String textoObs,
             String textoMissaMinistros,
-            String adendos) {}
+            String adendos,
+            String historicoDesde) {}
 }

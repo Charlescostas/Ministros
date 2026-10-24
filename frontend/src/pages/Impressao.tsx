@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, mensagemErro } from '../api/client';
 import Modal from '../components/Modal';
-import type { Configuracao, Equipe, EscalaItem, Ministro, Missa } from '../types';
+import type { Configuracao, Equipe, EscalaItem, HistoricoDetalhe, HistoricoEquipe, HistoricoMissa, Ministro, Missa } from '../types';
 import { deslocarMes, mesAtual, opcoesDeMes, rotuloMes, rotuloMesCurto } from '../lib/format';
 import { abrirWhatsapp, textoEscalaDoMes } from '../lib/whatsapp';
 
@@ -20,6 +20,14 @@ function diaDoMes(iso: string): string {
   return String(Number(iso.slice(8, 10)));
 }
 
+/** "05/10/2026 às 14:32" a partir do ISO gravado pelo backend. */
+function dataHora(iso: string): string {
+  const d = new Date(iso);
+  const data = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${data} às ${hora}`;
+}
+
 export default function Impressao() {
   const [mes, setMes] = useState(mesAtual());
   const [missas, setMissas] = useState<Missa[]>([]);
@@ -27,6 +35,10 @@ export default function Impressao() {
   const [config, setConfig] = useState<Configuracao | null>(null);
   const [itens, setItens] = useState<EscalaItem[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  /** Última fotografia da geração deste mês (se houver), usada no documento. */
+  const [historico, setHistorico] = useState<HistoricoDetalhe | null>(null);
+  /** Mostrar o documento como estava na geração (padrão) ou com os dados atuais. */
+  const [usarHistorico, setUsarHistorico] = useState(true);
   /** Prévia do resumo do mês, mostrada em tela antes de abrir o WhatsApp. */
   const [preview, setPreview] = useState<{ titulo: string; texto: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -54,6 +66,26 @@ export default function Impressao() {
       .catch((ex) => setErro(mensagemErro(ex)));
   }, [mes]);
 
+  /** Fotografia da geração do mês: documento igualzinho a quando a escala foi criada. */
+  useEffect(() => {
+    setHistorico(null);
+    api<HistoricoDetalhe[]>('/escalas/historico', { query: { mes } })
+      .then((registros) => {
+        const ultimo = registros[0];
+        if (!ultimo) {
+          setUsarHistorico(true);
+          return;
+        }
+        return api<HistoricoDetalhe>(`/escalas/historico/${ultimo.id}`).then((detalhe) => {
+          setHistorico(detalhe);
+          setUsarHistorico(true);
+        });
+      })
+      .catch(() => undefined); // sem historico: documento com os dados atuais
+  }, [mes]);
+
+  const comHistorico = usarHistorico && historico !== null && historico.missas.length > 0;
+
   const equipesOrganizadas = [...equipes].sort((a, b) => {
     if (a.numero != null && b.numero != null) return a.numero - b.numero;
     if (a.numero != null) return -1;
@@ -67,11 +99,11 @@ export default function Impressao() {
     return equipe?.nome ?? nome ?? '—';
   };
 
-  const rotuloCoordenador = (m: Ministro): string => 
-    m.sexo?.trim().toLowerCase() === 'masculino' ? '(Coordenador)' : '(Coordenadora)';
+  const rotuloCoordenador = (sexo: string | null | undefined): string =>
+    sexo?.trim().toLowerCase() === 'masculino' ? '(Coordenador)' : '(Coordenadora)';
 
-  const rotuloEquipeLista = (equipe: Equipe): string =>
-    equipe.numero != null ? `EQUIPE ${equipe.numero}` : equipe.nome;
+  const rotuloEquipeLista = (numero: number | null, nome: string): string =>
+    numero != null ? `EQUIPE ${numero}` : nome;
 
   /**
    * Integrantes do quadro impresso: o coordenador vem **primeiro da linha**
@@ -82,6 +114,69 @@ export default function Impressao() {
       (a, b) =>
         (a.id === equipe.coordenadorId ? 0 : 1) - (b.id === equipe.coordenadorId ? 0 : 1),
     );
+
+  /** Missas do documento: a fotografia da geração, ou as missas atuais. */
+  const missasDoDocumento: Array<{
+    chave: number | string;
+    data: string;
+    hora: string;
+    rotuloEquipe: string;
+    observacoes: string | null;
+    destaque: boolean;
+  }> = comHistorico
+    ? historico.missas.map((m: HistoricoMissa) => ({
+        chave: m.missaId,
+        data: m.data,
+        hora: m.hora,
+        rotuloEquipe:
+          m.equipeNumero != null ? `EQUIPE ${m.equipeNumero}` : m.equipeNome ?? '—',
+        observacoes: m.observacoes,
+        destaque: m.destaque,
+      }))
+    : missas.map((m) => ({
+        chave: m.id,
+        data: m.data,
+        hora: m.hora,
+        rotuloEquipe: rotuloEquipe(m.equipeId, m.equipeNome),
+        observacoes: m.observacoes,
+        destaque: m.destaque,
+      }));
+
+  /** Quadro de equipes do documento: a fotografia da geração, ou as equipes atuais. */
+  const equipesDoDocumento: Array<{
+    chave: number | string;
+    rotulo: string;
+    membros: Array<{ chave: number | string; nome: string; coordenador: boolean; sexo: string | null }>;
+  }> = comHistorico
+    ? [...historico.equipes]
+        .sort((a, b) => {
+          if (a.numero != null && b.numero != null) return a.numero - b.numero;
+          if (a.numero != null) return -1;
+          if (b.numero != null) return 1;
+          return a.nome.localeCompare(b.nome);
+        })
+        .map((e: HistoricoEquipe) => ({
+          chave: e.equipeId,
+          rotulo: rotuloEquipeLista(e.numero, e.nome),
+          membros: e.membros
+            .map((m) => ({
+              chave: m.ministroId,
+              nome: m.nome,
+              coordenador: m.coordenador,
+              sexo: m.sexo,
+            }))
+            .sort((a, b) => (a.coordenador ? 0 : 1) - (b.coordenador ? 0 : 1)),
+        }))
+    : equipesOrganizadas.map((e) => ({
+        chave: e.id,
+        rotulo: rotuloEquipeLista(e.numero, e.nome),
+        membros: membrosDaEquipe(e).map((m) => ({
+          chave: m.id,
+          nome: m.nome,
+          coordenador: e.coordenadorId === m.id,
+          sexo: m.sexo,
+        })),
+      }));
 
   /** Mostra em tela o resumo da escala do mês (daí copia ou abre o WhatsApp). */
   function enviarResumo() {
@@ -153,7 +248,29 @@ export default function Impressao() {
           <button type="button" className="botao-mini" onClick={() => setMes(deslocarMes(mes, 1))}>
             próximo mês →
           </button>
+
+          {historico && (
+            <select
+              className="selecao"
+              value={usarHistorico ? 'historico' : 'atuais'}
+              onChange={(e) => setUsarHistorico(e.target.value === 'historico')}
+            >
+              <option value="historico">
+                Equipes da geração ({dataHora(historico.criadoEm)})
+              </option>
+              <option value="atuais">Equipes atuais</option>
+            </select>
+          )}
         </div>
+
+        {historico && (
+          <p className="dica">
+            {comHistorico
+              ? 'Mostrando a escala como ficou no momento da geração — membros das equipes e missas daquele instante.'
+              : 'Mostrando os dados atuais — as equipes podem ter mudado desde a geração.'}{' '}
+            <Link to="/escala/historico">Ver histórico completo</Link>
+          </p>
+        )}
 
         {erro && <div className="aviso erro">{erro}</div>}
       </div>
@@ -180,16 +297,16 @@ export default function Impressao() {
               </tr>
             </thead>
             <tbody>
-              {missas.map((missa) => (
-                <tr key={missa.id} className={missa.destaque ? 'doc-destaque' : undefined}>
+              {missasDoDocumento.map((missa) => (
+                <tr key={missa.chave} className={missa.destaque ? 'doc-destaque' : undefined}>
                   <td className="centro">{diaDoMes(missa.data)}</td>
                   <td>{diaSemana(missa.data)}</td>
                   <td className="centro">{missa.hora.slice(0, 5)}</td>
-                  <td className="centro">{rotuloEquipe(missa.equipeId, missa.equipeNome)}</td>
+                  <td className="centro">{missa.rotuloEquipe}</td>
                   <td>{missa.observacoes ?? ''}</td>
                 </tr>
               ))}
-              {missas.length === 0 && (
+              {missasDoDocumento.length === 0 && (
                 <tr>
                   <td colSpan={5} className="centro">
                     Nenhuma missa cadastrada em {rotuloMes(mes)}
@@ -204,23 +321,19 @@ export default function Impressao() {
 
         <table className="doc-equipes">
           <tbody>
-            {equipesOrganizadas.map((equipe) => (
-              <tr key={equipe.id}>
-                <th>..::  Equipe {rotuloEquipeLista(equipe)}  ::..</th>
+            {equipesDoDocumento.map((equipe) => (
+              <tr key={equipe.chave}>
+                <th>..::  Equipe {equipe.rotulo}  ::..</th>
                 <td>
-                  {equipe.ministros.length === 0
+                  {equipe.membros.length === 0
                     ? 'Sem membros cadastrados'
-                    : membrosDaEquipe(equipe).map((m, i) => (
-                        <Fragment key={m.id}>
+                    : equipe.membros.map((m, i) => (
+                        <Fragment key={m.chave}>
                           {i > 0 && '-'}
-                          <span
-                            className={
-                              equipe.coordenadorId === m.id ? 'doc-coordenador' : undefined
-                            }
-                          >
+                          <span className={m.coordenador ? 'doc-coordenador' : undefined}>
                             {m.nome}
-                            {equipe.coordenadorId === m.id && ` ${rotuloCoordenador(m)}`}
-                        </span>
+                            {m.coordenador && ` ${rotuloCoordenador(m.sexo)}`}
+                          </span>
                         </Fragment>
                       ))}
                 </td>

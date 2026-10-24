@@ -35,6 +35,13 @@ public class Configuracao {
     @Column(columnDefinition = "text")
     private String adendos;
 
+    /**
+     * Mes (AAAA-MM) a partir do qual a geracao da escala equilibra os
+     * horarios usando o historico gravado. Vazio = usar historico sempre.
+     */
+    @Column(name = "historico_desde", length = 7)
+    private String historicoDesde;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNomeParoquia() { return nomeParoquia; }
@@ -47,4 +54,6 @@ public class Configuracao {
     public void setTextoMissaMinistros(String textoMissaMinistros) { this.textoMissaMinistros = textoMissaMinistros; }
     public String getAdendos() { return adendos; }
     public void setAdendos(String adendos) { this.adendos = adendos; }
+    public String getHistoricoDesde() { return historicoDesde; }
+    public void setHistoricoDesde(String historicoDesde) { this.historicoDesde = historicoDesde; }
 }

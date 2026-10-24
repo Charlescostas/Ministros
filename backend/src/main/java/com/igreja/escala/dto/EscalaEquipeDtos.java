@@ -25,6 +25,10 @@ public final class EscalaEquipeDtos {
             int totalMissas,
             int mantidas,
             int atribuidas,
+            /** Registro do historico gravado nesta geracao (membros e missas por dia). */
+            Long historicoId,
+            /** Se o equilibrio por historico (horarios de meses anteriores) valeu aqui. */
+            boolean historicoConsiderado,
             List<Linha> linhas,
             List<ResumoEquipe> resumo) {}
 

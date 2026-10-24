@@ -7,6 +7,7 @@ import Ministros from './pages/Ministros';
 import Equipes from './pages/Equipes';
 import Missas from './pages/Missas';
 import Escala from './pages/Escala';
+import Historico from './pages/Historico';
 import Financeiro from './pages/Financeiro';
 import Impressao from './pages/Impressao';
 import ImpressaoCaixa from './pages/ImpressaoCaixa';
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/equipes" element={<Equipes />} />
             <Route path="/missas" element={<Missas />} />
             <Route path="/escala" element={<Escala />} />
+            <Route path="/escala/historico" element={<Historico />} />
             <Route path="/financeiro" element={<Financeiro />} />
             <Route path="/caixa" element={<ImpressaoCaixa />} />
             <Route path="/caixa/anual" element={<ImpressaoCaixaAnual />} />

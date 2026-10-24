@@ -128,6 +128,22 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
   **individual** da pessoa (só os serviços dela, com data/horário/local e a vaga) já endereçada
   ao **telefone cadastrado** — sem telefone, abre o WhatsApp para você escolher o contato.
   Tudo montado em `frontend/src/lib/whatsapp.ts`.
+* **Histórico da escala** — a cada **Gerar Escala do mês** (página *Missas*) é gravada uma
+  **fotografia** do momento, guardada em tabela própria (`escala_historico`): os **membros de
+  cada equipe** naquele instante (coordenador marcado com ★), **qual equipe fazia cada missa** e
+  a **quantidade de missas por dia da semana** com os horários. Como a fotografia não referencia
+  as tabelas vivas, ela continua correta mesmo que a equipe mude de membros, o ministro seja
+  excluído ou as missas do mês sejam reprogramadas depois. A consulta fica em
+  **Painel Escala → Histórico** (rota `/escala/historico`), com filtro por mês e detalhe em modal.
+  Na **Escala impressa**, o documento usa a fotografia do mês automaticamente (com seletor para
+  alternar entre *Equipes da geração* e *Equipes atuais*).
+* **Equilíbrio por histórico na geração** — ao gerar a escala, cada equipe é equilibrada
+  também pelos **horários que já cumpriu**, lidos do histórico gravado (o registro mais recente
+  de cada mês anterior): quem já costuma fazer quinta 19:30 e domingo 8h não acumula esses
+  horários em cima de quem os faz menos — e a contagem não muda se as equipes ou missas forem
+  alteradas depois. Em **Cabeçalho → Geração da escala**, o campo **“Considerar o histórico a
+  partir de”** adia a regra para o mês que você escolher (em branco = usar desde já); meses
+  anteriores a ele são gerados só com o equilíbrio do próprio mês.
 * **Escala impressa** — documento mensal no **modelo do PDF** da paróquia (título do mês,
   cabeçalho da paróquia, tabela *Data | Dia da Semana | Horário | Equipe | Observação*,
   quadro de equipes com os integrantes — o **coordenador aparece primeiro da linha**,
@@ -166,11 +182,15 @@ O Vite faz *proxy* de `/api` para `http://localhost:8080`, então não há probl
 O botão **Gerar equipes do mês** (página *Missas*) atribui uma equipe para cada missa do
 mês, na ordem do calendário, sempre escolhendo a equipe com menor pontuação nesta ordem:
 
-1. **menos atuações nesse mesmo dia da semana** (segunda, terça, quarta…) nos
-   **meses anteriores** — o histórico completo é consultado;
-2. **menos atuações nesse dia da semana** já no **mês atual**;
-3. **menos missas no mês atual** (distribuição justa do mês);
-4. **menor histórico geral**. Empate: menor **número** da equipe (depois, ordem alfabética).
+1. **menos missas no mês atual** (distribuição justa do mês: a diferença entre a que mais e a
+   que menos atua nunca passa de 1);
+2. **menos missas nesse mesmo dia e horário** — somando o mês e o **histórico gravado**: se a
+   EQUIPE 4 já faz quinta 19:30 e domingo 8h nos meses anteriores, ela só volta a esses
+   horários quando todas as outras equipes tiverem feito o mesmo tanto (é a regra que evita
+   uma equipe acumular mais missas num horário que as demais);
+3. **menos missas nesse dia da semana** (mês + histórico);
+4. **menor total geral** (mês + histórico). Empate: menor **número** da equipe (depois, ordem
+   alfabética).
 
 Observações:
 
@@ -178,6 +198,10 @@ Observações:
   sem ela, as equipes já definidas são mantidas e só as missas “sem equipe” são preenchidas.
 * Se todas as missas do mês já tiverem equipe e a opção estiver desligada, a API responde `409`.
 * Participam da escala apenas equipes **ativas** (com membros, quando houver).
+* O **histórico** consultado vem dos **registros gravados** (fotografia de cada geração) e não
+  mais das missas vivas — a contagem de horários fica estável mesmo se as equipes mudarem depois.
+  O campo **“Considerar o histórico a partir de”** (em *Cabeçalho*) permite adiar essa regra:
+  antes do mês escolhido, a geração usa só o equilíbrio do próprio mês.
 * O retorno traz o **resumo por equipe** (carga no mês e histórico por dia da semana),
   exibido na tela logo após a geração.
 
@@ -219,7 +243,7 @@ Ministros/
 │       ├── components/       # Layout, Modal
 │       ├── context/          # AuthContext (login/logout)
 │       ├── pages/            # Login, Dashboard, Ministros, Equipes, Missas, Escala,
-│       │                     # Impressao, Funcoes, Configuracoes
+│       │                     # Historico, Impressao, Funcoes, Configuracoes
 │       └── types.ts          # contratos compartilhados com a API
 └── rodar-tudo.ps1            # sobe backend + frontend juntos
 ```
@@ -239,7 +263,9 @@ Ministros/
 | GET/POST | `/api/funcoes` | funções da missa |
 | GET | `/api/escalas?mes=AAAA-MM&equipeId=` | escala gerada |
 | POST | `/api/escalas/gerar` | `{equipeId, mes, substituir}` → gera a escala |
-| POST | `/api/escalas/equipes/gerar` | `{mes, substituir}` → distribui as **equipes** nas missas |
+| POST | `/api/escalas/equipes/gerar` | `{mes, substituir}` → distribui as **equipes** nas missas (e grava o histórico) |
+| GET | `/api/escalas/historico?mes=AAAA-MM` | registros do histórico (fotos das escala geradas) |
+| GET | `/api/escalas/historico/{id}` | detalhe: missas com equipe, membros das equipes e missas por dia da semana |
 | PUT/DELETE | `/api/escalas/{id}` | troca ministro / remove item |
 | POST | `/api/escalas/limpar?mes=&equipeId=` | apaga a escala do mês |
 | GET/POST | `/api/mensalidades` | lista (`?de=&ate=&ministroId=&competenciaDe=&competenciaAte=`) / cria |

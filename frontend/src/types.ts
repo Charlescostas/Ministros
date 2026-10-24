@@ -82,6 +82,8 @@ export interface Configuracao {
   textoObs: string;
   textoMissaMinistros: string;
   adendos: string;
+  /** Mês (AAAA-MM) a partir do qual a geração equilibra os horários pelo histórico. Vazio = sempre. */
+  historicoDesde: string | null;
 }
 
 export interface Funcao {
@@ -142,8 +144,70 @@ export interface GeracaoEquipes {
   totalMissas: number;
   mantidas: number;
   atribuidas: number;
+  /** Registro do histórico gravado nesta geração (membros e missas por dia). */
+  historicoId: number | null;
+  /** Se o equilíbrio por histórico (horários de meses anteriores) valeu nesta geração. */
+  historicoConsiderado: boolean;
   linhas: GeracaoEquipesLinha[];
   resumo: GeracaoEquipesResumo[];
+}
+
+/** Fotografia da escala no momento em que foi gerada (lista). */
+export interface HistoricoResumo {
+  id: number;
+  mes: string;
+  criadoEm: string;
+  totalMissas: number;
+  totalEquipes: number;
+  totalMembros: number;
+}
+
+/** Membro de uma equipe no momento da geração. */
+export interface HistoricoMembro {
+  ministroId: number;
+  nome: string;
+  telefone: string | null;
+  sexo: string | null;
+  coordenador: boolean;
+}
+
+/** Equipe e seus membros no momento da geração. */
+export interface HistoricoEquipe {
+  equipeId: number;
+  nome: string;
+  numero: number | null;
+  membros: HistoricoMembro[];
+}
+
+/** Uma missa do mês e a equipe que a cobria no momento da geração. */
+export interface HistoricoMissa {
+  missaId: number;
+  data: string;
+  hora: string;
+  titulo: string;
+  observacoes: string | null;
+  destaque: boolean;
+  equipeId: number | null;
+  equipeNome: string | null;
+  equipeNumero: number | null;
+}
+
+/** Quantidade de missas de um dia da semana, com os horários do mês. */
+export interface HistoricoDiaSemana {
+  diaSemana: string;
+  quantidade: number;
+  horarios: string[];
+}
+
+/** Fotografia completa de uma geração da escala. */
+export interface HistoricoDetalhe {
+  id: number;
+  mes: string;
+  criadoEm: string;
+  totalMissas: number;
+  missasPorDiaSemana: HistoricoDiaSemana[];
+  missas: HistoricoMissa[];
+  equipes: HistoricoEquipe[];
 }
 
 export interface Resumo {
